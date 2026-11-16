@@ -64,6 +64,7 @@ For each academic year, assign every student a program, year level, and cohort s
    npm run db:seed
    ```
    *(To reset and re-seed the development database cleanly at any time, run `npm run db:reset`.)*
+   *(To transpose existing SQLite database records into a target MySQL database, run `npm run db:transpose --prefix server`.)*
 4. **Start Backend & Frontend Together**:
    ```powershell
    npm run dev
