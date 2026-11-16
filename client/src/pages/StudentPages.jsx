@@ -27,12 +27,14 @@ import {
   Circle,
   Trophy,
   CircleHelp,
+  Trash2,
   Medal,
   ExternalLink
 } from 'lucide-react';
 import QrCode from '../components/ui/QrCode';
 import { MinsuSeal, MinsuCampusBanner, MinsuStatCard, MinsuCard, MinsuQuickLink } from '../components/ui/MinsuBrand';
 import { lmsApi, extractErrorMessage } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import {
   PageHeader,
   StatCard,
@@ -4530,16 +4532,225 @@ export function StudentCommunicationSubPage() {
   );
 }
 
+const ACADEMIC_CALENDAR_CATEGORIES = [
+  { key: 'assignments', label: 'Assignments', dotClass: 'bg-blue-500', textClass: 'text-blue-700', cardClass: 'border-blue-200 bg-blue-50' },
+  { key: 'quizzes', label: 'Quizzes', dotClass: 'bg-purple-500', textClass: 'text-purple-700', cardClass: 'border-purple-200 bg-purple-50' },
+  { key: 'examinations', label: 'Examinations', dotClass: 'bg-rose-500', textClass: 'text-rose-700', cardClass: 'border-rose-200 bg-rose-50' },
+  { key: 'activities', label: 'Activities', dotClass: 'bg-amber-500', textClass: 'text-amber-700', cardClass: 'border-amber-200 bg-amber-50' },
+  { key: 'projects', label: 'Projects', dotClass: 'bg-emerald-500', textClass: 'text-emerald-700', cardClass: 'border-emerald-200 bg-emerald-50' },
+  { key: 'courseEvents', label: 'Course Events', dotClass: 'bg-teal-500', textClass: 'text-teal-700', cardClass: 'border-teal-200 bg-teal-50' },
+  { key: 'studySessions', label: 'Study Sessions', dotClass: 'bg-slate-400', textClass: 'text-slate-600', cardClass: 'border-slate-200 bg-slate-50' }
+];
+
+function parseCalendarDate(value) {
+  if (value == null || value === '') return null;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getCalendarDateKey(value) {
+  const date = parseCalendarDate(value);
+  if (!date) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatCalendarDate(value, options) {
+  const date = parseCalendarDate(value);
+  return date ? date.toLocaleDateString(undefined, options) : 'Date to be announced';
+}
+
+function formatCalendarTime(value) {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return '';
+  const date = parseCalendarDate(value);
+  return date ? date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
+}
+
 export function StudentCalendarSubPage() {
+  const { user } = useAuth();
+  const { addToast } = useToast();
+  const storageKey = `student-study-planner-${user?.id || user?.email || 'student'}`;
+  const [studySessions, setStudySessions] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) throw new Error('Saved study plan must be a list.');
+      return parsed;
+    } catch (error) {
+      console.error('Unable to load the saved study plan.', error);
+      return [];
+    }
+  });
+  const [studyTitle, setStudyTitle] = useState('');
+  const [studyDate, setStudyDate] = useState('');
+  const [studyTime, setStudyTime] = useState('');
+  const [studyCourseId, setStudyCourseId] = useState('');
+  const [calendarDate, setCalendarDate] = useState(() => new Date());
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => getCalendarDateKey(new Date()));
+  const [calendarView, setCalendarView] = useState('month');
+  const [visibleCalendarCategories, setVisibleCalendarCategories] = useState(
+    () => new Set(ACADEMIC_CALENDAR_CATEGORIES.map((category) => category.key))
+  );
+
   const { data: dashData, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard', 'student'],
     queryFn: lmsApi.getDashboardSummary
   });
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(studySessions));
+    } catch (storageError) {
+      console.error('Unable to save the study plan in this browser.', storageError);
+      addToast('Your study plan could not be saved in this browser.', 'error');
+    }
+  }, [addToast, storageKey, studySessions]);
+
+  const handleAddStudySession = (event) => {
+    event.preventDefault();
+    const title = studyTitle.trim();
+    if (!title || !studyDate || !studyTime) {
+      addToast('Enter a study topic, date, and time.', 'error');
+      return;
+    }
+    const courses = dashData?.data?.enrolledCourses || [];
+    const selectedCourse = courses.find((course) => String(course.classId) === studyCourseId);
+    setStudySessions((sessions) => [
+      ...sessions,
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title,
+        date: studyDate,
+        time: studyTime,
+        courseTitle: selectedCourse ? `${selectedCourse.courseCode} · ${selectedCourse.courseTitle}` : 'General study',
+        completed: false
+      }
+    ].sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime()));
+    setStudyTitle('');
+    setStudyDate('');
+    setStudyTime('');
+    setStudyCourseId('');
+    addToast('Study session added to your plan.');
+  };
+
   if (isLoading) return <LoadingState label="Loading academic calendar & deadlines..." />;
   if (error) return <ErrorState message={extractErrorMessage(error)} onRetry={refetch} />;
 
   const dashboard = dashData?.data || {};
+  const enrolledCourses = dashboard.enrolledCourses || [];
+  const courseForClass = (classId) => enrolledCourses.find((course) => String(course.classId) === String(classId));
+  const sortedStudySessions = [...studySessions].sort(
+    (a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime()
+  );
+  const assignmentCalendarItems = [
+    ...(dashboard.upcomingAssignments || []),
+    ...(dashboard.overdueAssignments || [])
+  ].map((assignment) => {
+    const assignmentType = String(assignment.assignmentType || '').toLowerCase();
+    const category = assignmentType.includes('project')
+      ? 'projects'
+      : ['performance_task', 'laboratory', 'network_config', 'recitation', 'case_study'].includes(assignmentType)
+        ? 'activities'
+        : 'assignments';
+    const course = courseForClass(assignment.classId);
+    return {
+      id: `assignment-${assignment.id}`,
+      title: assignment.title,
+      date: assignment.dueDate,
+      category,
+      typeLabel: ACADEMIC_CALENDAR_CATEGORIES.find((item) => item.key === category).label,
+      courseLabel: course ? `${course.courseCode} · ${course.courseTitle}` : '',
+      link: '/student/assignments',
+      action: 'View assignment'
+    };
+  });
+  const assessmentCalendarItems = [
+    ...(dashboard.upcomingExams || []),
+    ...(dashboard.lateAllowedExams || []),
+    ...(dashboard.overdueExams || [])
+  ].map((assessment) => {
+    const category = String(assessment.assessmentType || '').toLowerCase().includes('quiz')
+      ? 'quizzes'
+      : 'examinations';
+    const course = courseForClass(assessment.classId);
+    return {
+      id: `assessment-${assessment.id}`,
+      title: assessment.title,
+      date: assessment.closeDate,
+      startDate: assessment.startDate,
+      timeLimitMinutes: assessment.timeLimitMinutes,
+      category,
+      typeLabel: ACADEMIC_CALENDAR_CATEGORIES.find((item) => item.key === category).label,
+      courseLabel: course ? `${course.courseCode} · ${course.courseTitle}` : '',
+      link: '/student/assessments',
+      action: 'View assessment'
+    };
+  });
+  const studyCalendarItems = sortedStudySessions.map((session) => ({
+    id: `study-${session.id}`,
+    title: session.title,
+    date: `${session.date}T${session.time}`,
+    category: 'studySessions',
+    typeLabel: 'Study Session',
+    courseLabel: session.courseTitle,
+    completed: Boolean(session.completed)
+  }));
+  const calendarItems = [...assignmentCalendarItems, ...assessmentCalendarItems, ...studyCalendarItems]
+    .filter((item) => getCalendarDateKey(item.date))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const visibleCalendarItems = calendarItems.filter((item) => visibleCalendarCategories.has(item.category));
+  const calendarItemsByDate = visibleCalendarItems.reduce((itemsByDate, item) => {
+    const dateKey = getCalendarDateKey(item.date);
+    itemsByDate[dateKey] = [...(itemsByDate[dateKey] || []), item];
+    return itemsByDate;
+  }, {});
+  const calendarStartDate = calendarView === 'month'
+    ? new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1 - new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1).getDay())
+    : calendarView === 'week'
+      ? new Date(calendarDate.getFullYear(), calendarDate.getMonth(), calendarDate.getDate() - calendarDate.getDay())
+      : new Date(calendarDate.getFullYear(), calendarDate.getMonth(), calendarDate.getDate());
+  const calendarDates = Array.from({ length: calendarView === 'month' ? 42 : calendarView === 'week' ? 7 : 1 }, (_, index) => (
+    new Date(calendarStartDate.getFullYear(), calendarStartDate.getMonth(), calendarStartDate.getDate() + index)
+  ));
+  const selectedDayEvents = calendarItemsByDate[selectedCalendarDate] || [];
+  const calendarRangeLabel = calendarView === 'month'
+    ? calendarDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+    : calendarView === 'week'
+      ? `${calendarDates[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${calendarDates[6].toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : calendarDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  const moveCalendar = (direction) => {
+    const nextDate = new Date(calendarDate);
+    if (calendarView === 'month') {
+      const targetMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + direction, 1);
+      const lastDayOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0).getDate();
+      nextDate.setFullYear(targetMonth.getFullYear(), targetMonth.getMonth(), Math.min(nextDate.getDate(), lastDayOfMonth));
+    } else {
+      nextDate.setDate(nextDate.getDate() + (calendarView === 'week' ? 7 : 1) * direction);
+    }
+    setCalendarDate(nextDate);
+    setSelectedCalendarDate(getCalendarDateKey(nextDate));
+  };
+  const goToToday = () => {
+    const today = new Date();
+    setCalendarDate(today);
+    setSelectedCalendarDate(getCalendarDateKey(today));
+  };
+  const toggleCalendarCategory = (categoryKey) => {
+    setVisibleCalendarCategories((categories) => {
+      const nextCategories = new Set(categories);
+      if (nextCategories.has(categoryKey)) nextCategories.delete(categoryKey);
+      else nextCategories.add(categoryKey);
+      return nextCategories;
+    });
+  };
   const upcomingItems = [
     ...(dashboard.upcomingAssignments || []).map((assignment) => ({
       id: `assignment-${assignment.id}`,
@@ -4589,6 +4800,309 @@ export function StudentCalendarSubPage() {
       />
 
       <div className="space-y-6 text-xs">
+        <section className="rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Personal Study Planner</h2>
+              <p className="mt-1 text-slate-600">Create study sessions and track what you have completed.</p>
+            </div>
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-800">
+              Saved on this device
+            </span>
+          </div>
+
+          <form onSubmit={handleAddStudySession} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="sm:col-span-2 lg:col-span-2">
+              <label htmlFor="study-topic" className="mb-1 block font-semibold text-slate-700">Study topic</label>
+              <input
+                id="study-topic"
+                required
+                value={studyTitle}
+                onChange={(event) => setStudyTitle(event.target.value)}
+                placeholder="e.g. Review OSPF routing"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="study-date" className="mb-1 block font-semibold text-slate-700">Date</label>
+              <input
+                id="study-date"
+                type="date"
+                required
+                value={studyDate}
+                onChange={(event) => setStudyDate(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="study-time" className="mb-1 block font-semibold text-slate-700">Start time</label>
+              <input
+                id="study-time"
+                type="time"
+                required
+                value={studyTime}
+                onChange={(event) => setStudyTime(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="study-course" className="mb-1 block font-semibold text-slate-700">Course</label>
+              <select
+                id="study-course"
+                value={studyCourseId}
+                onChange={(event) => setStudyCourseId(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">General study</option>
+                {enrolledCourses.map((course) => (
+                  <option key={course.classId} value={course.classId}>
+                    {course.courseCode} · {course.courseTitle}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 sm:col-span-2 lg:col-span-5 lg:justify-self-end"
+            >
+              Add Study Session
+            </button>
+          </form>
+
+          <div className="mt-5 space-y-2">
+            {sortedStudySessions.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-slate-300 px-4 py-5 text-center text-slate-500">
+                No study sessions planned yet. Add one above to get started.
+              </p>
+            ) : (
+              sortedStudySessions.map((session) => (
+                <article
+                  key={session.id}
+                  className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 ${
+                    session.completed ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'
+                  }`}
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(session.completed)}
+                      aria-label={`${session.completed ? 'Mark' : 'Complete'} ${session.title}`}
+                      onChange={() => setStudySessions((sessions) => sessions.map((item) => (
+                        item.id === session.id ? { ...item, completed: !item.completed } : item
+                      )))}
+                      className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600"
+                    />
+                    <div className="min-w-0">
+                      <p className={`font-bold ${session.completed ? 'text-emerald-800 line-through' : 'text-slate-900'}`}>
+                        {session.title}
+                      </p>
+                      <p className="mt-0.5 text-slate-600">
+                        {session.courseTitle} · {new Date(`${session.date}T${session.time}`).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${session.title}`}
+                    onClick={() => setStudySessions((sessions) => sessions.filter((item) => item.id !== session.id))}
+                    className="rounded-md p-2 text-slate-500 hover:bg-white hover:text-rose-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </article>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-emerald-200 bg-white p-5 shadow-sm" aria-labelledby="academic-calendar-heading">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 id="academic-calendar-heading" className="flex items-center gap-2 text-sm font-bold text-emerald-800">
+                <CalendarDays className="h-4 w-4" />
+                Academic Calendar
+              </h2>
+              <p className="mt-1 text-slate-600">View course schedules, assignments, quizzes, and other important dates.</p>
+            </div>
+            <div className="inline-flex rounded-lg border border-slate-200 p-1" aria-label="Calendar view">
+              {['month', 'week', 'day'].map((view) => (
+                <button
+                  key={view}
+                  type="button"
+                  aria-label={`${view[0].toUpperCase()}${view.slice(1)} View`}
+                  aria-pressed={calendarView === view}
+                  onClick={() => setCalendarView(view)}
+                  className={`rounded-md px-3 py-1.5 font-semibold capitalize transition-colors ${
+                    calendarView === view ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {view} View
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 lg:flex-row">
+            <div className="min-w-0 flex-1">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  aria-label={`Previous ${calendarView}`}
+                  onClick={() => moveCalendar(-1)}
+                  className="rounded-md border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <h3 className="min-w-40 text-center text-sm font-bold text-slate-900">{calendarRangeLabel}</h3>
+                <button
+                  type="button"
+                  aria-label={`Next ${calendarView}`}
+                  onClick={() => moveCalendar(1)}
+                  className="rounded-md border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={goToToday}
+                  className="rounded-md bg-emerald-700 px-3 py-2 font-semibold text-white hover:bg-emerald-800"
+                >
+                  Today
+                </button>
+              </div>
+
+              <div className={`grid ${calendarView === 'day' ? 'grid-cols-1' : 'grid-cols-7'} border-l border-t border-slate-200`}>
+                {(calendarView === 'day'
+                  ? [calendarDates[0].toLocaleDateString(undefined, { weekday: 'short' })]
+                  : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+                ).map((weekday) => (
+                  <div key={weekday} className="border-b border-r border-slate-200 bg-slate-50 px-1 py-2 text-center font-semibold text-slate-500">
+                    {weekday}
+                  </div>
+                ))}
+                {calendarDates.map((date) => {
+                  const dateKey = getCalendarDateKey(date);
+                  const dayItems = calendarItemsByDate[dateKey] || [];
+                  const isSelected = selectedCalendarDate === dateKey;
+                  const isToday = getCalendarDateKey(new Date()) === dateKey;
+                  const isOutsideMonth = calendarView === 'month' && date.getMonth() !== calendarDate.getMonth();
+                  const eventSummary = dayItems.length
+                    ? `${dayItems.length} event${dayItems.length === 1 ? '' : 's'}: ${dayItems.map((item) => item.title).join(', ')}`
+                    : 'No events';
+                  return (
+                    <button
+                      key={dateKey}
+                      type="button"
+                      aria-label={`${date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}. ${eventSummary}`}
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        setSelectedCalendarDate(dateKey);
+                        setCalendarDate(date);
+                      }}
+                      className={`min-h-16 border-b border-r border-slate-200 p-1.5 text-left transition-colors sm:min-h-20 ${
+                        isSelected ? 'bg-emerald-50 ring-2 ring-inset ring-emerald-500' : 'hover:bg-slate-50'
+                      } ${isOutsideMonth ? 'bg-slate-50 text-slate-400' : 'text-slate-800'}`}
+                    >
+                      <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full font-semibold ${
+                        isToday ? 'bg-emerald-700 text-white' : ''
+                      }`}>
+                        {date.getDate()}
+                      </span>
+                      {calendarView === 'month' ? (
+                        <span className="mt-1 flex min-h-2 flex-wrap gap-1" aria-hidden="true">
+                          {dayItems.slice(0, 4).map((item) => {
+                            const category = ACADEMIC_CALENDAR_CATEGORIES.find((entry) => entry.key === item.category);
+                            return <span key={item.id} className={`h-1.5 w-1.5 rounded-full ${category?.dotClass || 'bg-slate-400'}`} />;
+                          })}
+                          {dayItems.length > 4 && <span className="text-[9px] leading-none text-slate-500">+{dayItems.length - 4}</span>}
+                        </span>
+                      ) : (
+                        <span className="mt-1 block space-y-1">
+                          {dayItems.slice(0, calendarView === 'day' ? 8 : 2).map((item) => {
+                            const category = ACADEMIC_CALENDAR_CATEGORIES.find((entry) => entry.key === item.category);
+                            return (
+                              <span key={item.id} className={`block truncate rounded px-1 py-0.5 text-[10px] ${category?.cardClass || 'bg-slate-50'}`}>
+                                {item.title}
+                              </span>
+                            );
+                          })}
+                          {dayItems.length > (calendarView === 'day' ? 8 : 2) && (
+                            <span className="block text-[10px] text-slate-500">+{dayItems.length - (calendarView === 'day' ? 8 : 2)} more</span>
+                          )}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <aside className="shrink-0 lg:w-44" aria-label="Event legend">
+              <h3 className="mb-2 font-bold text-slate-800">Event Legend</h3>
+              <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-1">
+                {ACADEMIC_CALENDAR_CATEGORIES.map((category) => {
+                  const isVisible = visibleCalendarCategories.has(category.key);
+                  return (
+                    <li key={category.key}>
+                      <button
+                        type="button"
+                        aria-pressed={isVisible}
+                        onClick={() => toggleCalendarCategory(category.key)}
+                        className={`flex items-center gap-2 rounded px-1 py-0.5 text-left transition-opacity ${
+                          isVisible ? 'opacity-100' : 'opacity-40'
+                        }`}
+                      >
+                        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${category.dotClass}`} />
+                        <span>{category.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </aside>
+          </div>
+
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <h3 className="mb-2 font-bold text-slate-900">
+              {calendarView === 'day' ? 'Schedule' : 'Selected day'} · {formatCalendarDate(selectedCalendarDate, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+            </h3>
+            {selectedDayEvents.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-slate-500">
+                No scheduled work for this date.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {selectedDayEvents.map((item) => {
+                  const category = ACADEMIC_CALENDAR_CATEGORIES.find((entry) => entry.key === item.category);
+                  return (
+                    <article key={item.id} className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 ${category?.cardClass || 'border-slate-200 bg-slate-50'}`}>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900">{item.title}</p>
+                        <p className={`mt-0.5 ${category?.textClass || 'text-slate-600'}`}>
+                          {item.typeLabel} · {formatCalendarTime(item.date) || 'All day'}
+                          {item.courseLabel ? ` · ${item.courseLabel}` : ''}
+                          {item.completed ? ' · Completed' : ''}
+                        </p>
+                        {item.startDate && (
+                          <p className="mt-0.5 text-slate-500">
+                            Opens {formatCalendarDate(item.startDate, { month: 'short', day: 'numeric' })} at {formatCalendarTime(item.startDate)}
+                            {item.timeLimitMinutes ? ` · ${item.timeLimitMinutes} minutes` : ''}
+                          </p>
+                        )}
+                      </div>
+                      {item.link && (
+                        <Link to={item.link} className="rounded-md bg-emerald-700 px-3 py-1.5 font-bold text-white hover:bg-emerald-800">
+                          {item.action}
+                        </Link>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
         <section className="bg-white rounded-xl border border-slate-200 p-5 space-y-3 shadow-xs">
           <h2 className="text-sm font-bold text-slate-900">Upcoming</h2>
           {upcomingItems.length === 0 ? (
