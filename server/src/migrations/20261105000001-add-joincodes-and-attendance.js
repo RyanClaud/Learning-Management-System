@@ -38,8 +38,9 @@ module.exports = {
   },
 
   async down(queryInterface) {
+    const dialect = queryInterface.sequelize.getDialect();
     const tables = await queryInterface.showAllTables();
-    if (tables.includes('classes')) {
+    if (dialect !== 'sqlite' && tables.includes('classes')) {
       const columns = await queryInterface.describeTable('classes');
       for (const columnName of ['join_code', 'join_code_enabled']) {
         if (columns[columnName]) {

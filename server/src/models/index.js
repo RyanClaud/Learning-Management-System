@@ -66,6 +66,8 @@ const {
   Grade,
   GradeHistory,
   Certificate,
+  Badge,
+  StudentBadge,
   AttendanceSession,
   AttendanceRecord,
   Announcement,
@@ -218,6 +220,8 @@ ClassSection.hasMany(Assessment, { foreignKey: 'classId', as: 'assessments' });
 Assessment.belongsTo(ClassSection, { foreignKey: 'classId', as: 'classSection' });
 Assessment.belongsTo(Course, { foreignKey: 'courseId', as: 'course' });
 Assessment.belongsTo(Module, { foreignKey: 'moduleId', as: 'module' });
+Lesson.hasMany(Assessment, { foreignKey: 'lessonId', as: 'assessments' });
+Assessment.belongsTo(Lesson, { foreignKey: 'lessonId', as: 'lesson' });
 Assessment.belongsTo(GradeCategory, { foreignKey: 'gradeCategoryId', as: 'gradeCategory' });
 
 Assessment.hasMany(AssessmentQuestion, { foreignKey: 'assessmentId', as: 'assessmentQuestions' });
@@ -247,6 +251,14 @@ GradeHistory.belongsTo(User, { foreignKey: 'changedBy', as: 'editor' });
 Certificate.belongsTo(User, { foreignKey: 'studentId', as: 'student' });
 Certificate.belongsTo(Course, { foreignKey: 'courseId', as: 'course' });
 Certificate.belongsTo(ClassSection, { foreignKey: 'classId', as: 'classSection' });
+
+Badge.belongsTo(Course, { foreignKey: 'courseId', as: 'course' });
+Course.hasMany(Badge, { foreignKey: 'courseId', as: 'badges' });
+StudentBadge.belongsTo(Badge, { foreignKey: 'badgeId', as: 'badge' });
+Badge.hasMany(StudentBadge, { foreignKey: 'badgeId', as: 'studentBadges' });
+StudentBadge.belongsTo(User, { foreignKey: 'studentId', as: 'student' });
+User.hasMany(StudentBadge, { foreignKey: 'studentId', as: 'badges' });
+StudentBadge.belongsTo(Course, { foreignKey: 'courseId', as: 'course' });
 
 // 5b. Attendance Associations
 AttendanceSession.belongsTo(ClassSection, { foreignKey: 'classId', as: 'classSection' });

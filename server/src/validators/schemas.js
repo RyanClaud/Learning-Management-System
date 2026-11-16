@@ -80,10 +80,12 @@ const programSchema = z.object({
 const updateCourseSchema = z.object({
   departmentId:       z.coerce.number().int().positive().optional(),
   programId:          z.coerce.number().int().positive().optional().nullable(),
-  code:               z.string().min(3).max(40).optional(),
+  code:               z.string().min(2).max(40).optional(),
   title:              z.string().min(3).max(220).optional(),
   description:        z.string().min(10).optional(),
   category:           z.string().max(100).optional(),
+  duration:           z.string().max(80).optional().nullable(),
+  imageUrl:           z.string().max(500).optional().nullable(),
   creditUnits:        z.coerce.number().int().min(1).max(12).optional(),
   lectureHours:       z.coerce.number().int().min(0).max(20).optional(),
   labHours:           z.coerce.number().int().min(0).max(20).optional(),
@@ -146,12 +148,14 @@ const semesterSchema = z.object({
 });
 
 const courseSchema = z.object({
-  departmentId: z.coerce.number().int().positive(),
+  departmentId: z.coerce.number().int().positive().optional().nullable(),
   programId: z.coerce.number().int().positive().optional().nullable(),
-  code: z.string().min(3).max(40),
+  code: z.string().min(2).max(40).optional(),
   title: z.string().min(3).max(220),
   description: z.string().min(10),
   category: z.string().max(100).optional().default('Networking & Systems'),
+  duration: z.string().max(80).optional().nullable(),
+  imageUrl: z.string().max(500).optional().nullable(),
   creditUnits: z.coerce.number().int().min(1).max(12).optional().default(3),
   lectureHours: z.coerce.number().int().min(0).max(20).optional().default(2),
   labHours: z.coerce.number().int().min(0).max(20).optional().default(3),
@@ -186,6 +190,17 @@ const classSectionSchema = z.object({
   latePenaltyPercent: z.coerce.number().min(0).max(100).optional().default(10),
   instructorId: z.coerce.number().int().positive().optional().nullable()
 });
+
+const instructorClassSectionSchema = z.union([
+  classSectionSchema,
+  classSectionSchema
+    .omit({ courseOfferingId: true, instructorId: true })
+    .extend({
+      courseId: z.coerce.number().int().positive(),
+      academicYearId: z.coerce.number().int().positive(),
+      semesterId: z.coerce.number().int().positive()
+    })
+]);
 
 const updateClassSectionSchema = z.object({
   sectionCode:          z.string().min(2).max(60).optional(),
@@ -234,7 +249,7 @@ const lessonSchema = z.object({
   moduleId: z.coerce.number().int().positive(),
   courseId: z.coerce.number().int().positive(),
   title: z.string().min(2).max(220),
-  lessonType: z.enum(['reading', 'video', 'laboratory', 'coding_exercise', 'interactive']).optional().default('reading'),
+  lessonType: z.enum(['reading', 'video', 'laboratory', 'coding_exercise', 'interactive', 'demonstration', 'lecture', 'activity']).optional().default('reading'),
   orderIndex: z.coerce.number().int().min(1).optional().default(1),
   summary: z.string().optional().nullable(),
   contentHtml: z.string().min(1, 'Lesson content is required'),
@@ -254,7 +269,7 @@ const assignmentSchema = z.object({
   gradeCategoryId: z.coerce.number().int().positive().optional().nullable(),
   title: z.string().min(3).max(220),
   instructions: z.string().min(5),
-  assignmentType: z.enum(['standard', 'programming', 'laboratory', 'network_config', 'project_milestone']).optional().default('standard'),
+  assignmentType: z.enum(['standard', 'programming', 'laboratory', 'network_config', 'project_milestone', 'written_work', 'performance_task', 'project', 'recitation', 'case_study']).optional().default('standard'),
   openDate: z.string().optional().nullable(),
   dueDate: z.string().min(8),
   maxScore: z.coerce.number().min(1).max(1000).optional().default(100),
@@ -310,19 +325,20 @@ const questionSetSchema = z.object({
 });
 
 const assessmentSchema = z.object({
-  classId: z.coerce.number().int().positive(),
+  classId: z.coerce.number().int().positive().optional().nullable(),
   courseId: z.coerce.number().int().positive(),
   moduleId: z.coerce.number().int().positive().optional().nullable(),
+  lessonId: z.coerce.number().int().positive().optional().nullable(),
   gradeCategoryId: z.coerce.number().int().positive().optional().nullable(),
   title: z.string().min(3).max(220),
   assessmentType: z.enum(['quiz', 'checkpoint_exam', 'final_exam', 'practical_exam']).optional().default('quiz'),
-  instructions: z.string().min(5),
+  instructions: z.string().optional().default('Answer all questions to complete the assessment.'),
   startDate: z.string().optional().nullable(),
-  closeDate: z.string().min(8),
-  timeLimitMinutes: z.coerce.number().int().min(5).max(360).optional().default(45),
+  closeDate: z.string().optional().nullable(),
+  timeLimitMinutes: z.coerce.number().int().min(1).max(360).optional().default(45),
   maxScore: z.coerce.number().min(1).max(1000).optional().default(100),
   passingScore: z.coerce.number().min(1).max(1000).optional().default(75),
-  maxAttempts: z.coerce.number().int().min(1).max(10).optional().default(2),
+  maxAttempts: z.coerce.number().int().min(1).max(20).optional().default(2),
   randomizeQuestions: z.boolean().optional().default(false),
   randomizeOptions: z.boolean().optional().default(false),
   autoPublishResults: z.boolean().optional().default(true),
@@ -411,6 +427,7 @@ module.exports = {
   courseSchema,
   courseOfferingSchema,
   classSectionSchema,
+  instructorClassSectionSchema,
   studentPlacementSchema,
   classEligibilitySchema,
   moduleSchema,

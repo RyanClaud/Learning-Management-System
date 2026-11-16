@@ -53,6 +53,7 @@ import {
   StudentAssessmentsAndExamRunnerPage,
   StudentGradesAndProgressPage,
   StudentCertificatesPage,
+  StudentBadgesPage,
   StudentClassesSubPage,
   StudentCalendarSubPage,
   StudentHelpSupportSubPage
@@ -115,6 +116,9 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify-certificate" element={<CertificateVerifyPublicPage />} />
+      <Route path="/verify/:code" element={<CertificateVerifyPublicPage />} />
+      <Route path="/verify/certificate/:code" element={<CertificateVerifyPublicPage />} />
+      <Route path="/verify/badge/:code" element={<CertificateVerifyPublicPage />} />
 
       {/* Protected Authenticated Application Shell */}
       <Route
@@ -410,7 +414,7 @@ export default function App() {
           }
         />
         <Route
-          path="/student/courses"
+          path="/student/courses/:classId?"
           element={
             <ProtectedRoute allowedRoles={['student']}>
               <StudentCourseLearningPage />
@@ -462,6 +466,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['student']}>
               <StudentCertificatesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/badges"
+          element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <StudentBadgesPage />
             </ProtectedRoute>
           }
         />

@@ -1,4 +1,5 @@
 const argon2 = require('argon2');
+const crypto = require('crypto');
 const {
   sequelize,
   Institution,
@@ -40,6 +41,7 @@ const {
   updateCourseSchema,
   updateCourseOfferingSchema,
   classSectionSchema,
+  instructorClassSectionSchema,
   updateClassSectionSchema,
   studentPlacementSchema,
   classEligibilitySchema
@@ -692,7 +694,27 @@ async function getCourseById(req, res, next) {
 
 async function createCourse(req, res, next) {
   try {
-    const payload = courseSchema.parse(req.body);
+    const rawBody = { ...req.body };
+    if (!rawBody.departmentId) {
+      if (req.user.departmentId) {
+        rawBody.departmentId = req.user.departmentId;
+      } else {
+        const firstDept = await Department.findOne({ order: [['id', 'ASC']] });
+        rawBody.departmentId = firstDept ? firstDept.id : 1;
+      }
+    }
+    if (!rawBody.code && rawBody.title) {
+      const codeBase = rawBody.title.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'CRS';
+      rawBody.code = `${codeBase}-${Math.floor(100 + Math.random() * 900)}`;
+    }
+    if (typeof rawBody.learningObjectives === 'string') {
+      rawBody.learningObjectives = rawBody.learningObjectives
+        .split(/[\n,;]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+
+    const payload = courseSchema.parse(rawBody);
     const course = await Course.create({
       ...payload,
       createdBy: req.user.id
@@ -704,7 +726,7 @@ async function createCourse(req, res, next) {
       category: 'course',
       entityType: 'Course',
       entityId: course.id,
-      metadata: { code: course.code, title: course.title }
+      metadata: { code: course.code, title: course.title, createdBy: req.user.id }
     });
 
     return res.status(201).json({ success: true, message: 'Course created successfully.', data: { course } });
@@ -721,7 +743,41 @@ async function updateCourse(req, res, next) {
     const course = await Course.findByPk(id);
     if (!course) throw new AppError('Course not found.', 404, 'COURSE_NOT_FOUND');
 
-    const payload = updateCourseSchema.parse(req.body);
+    // Enforce ownership/assignment rule for instructors:
+    if (req.user.primaryRole === 'instructor') {
+      const isCreator = course.createdBy === req.user.id;
+      let isAssigned = false;
+      if (!isCreator) {
+        const assignment = await InstructorAssignment.findOne({
+          where: { instructorId: req.user.id },
+          include: [{
+            model: ClassSection,
+            as: 'classSection',
+            include: [{
+              model: CourseOffering,
+              as: 'courseOffering',
+              where: { courseId: course.id },
+              required: true
+            }]
+          }]
+        });
+        if (assignment) isAssigned = true;
+      }
+
+      if (!isCreator && !isAssigned) {
+        throw new AppError('Forbidden: Instructors can only manage courses assigned to or created by them.', 403, 'COURSE_ACCESS_DENIED');
+      }
+    }
+
+    const rawBody = { ...req.body };
+    if (typeof rawBody.learningObjectives === 'string') {
+      rawBody.learningObjectives = rawBody.learningObjectives
+        .split(/[\n,;]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+
+    const payload = updateCourseSchema.parse(rawBody);
     await course.update(payload);
 
     await recordAudit({
@@ -745,6 +801,10 @@ async function deleteCourse(req, res, next) {
 
     const course = await Course.findByPk(id);
     if (!course) throw new AppError('Course not found.', 404, 'COURSE_NOT_FOUND');
+
+    if (req.user.primaryRole === 'instructor' && course.createdBy !== req.user.id) {
+      throw new AppError('Forbidden: Instructors can only delete or archive courses created by them.', 403, 'COURSE_ACCESS_DENIED');
+    }
 
     // Guard: cannot delete if course has offerings
     const offeringsCount = await CourseOffering.count({ where: { courseId: id } });
@@ -1000,38 +1060,44 @@ async function getClassById(req, res, next) {
   }
 }
 
+async function createClassSectionRecords(payload, instructorId, assignedBy, transaction, joinCodeEnabled = false) {
+  const classSection = await ClassSection.create({
+    courseOfferingId: payload.courseOfferingId,
+    sectionCode: payload.sectionCode,
+    name: payload.name,
+    room: payload.room || null,
+    schedule: payload.schedule || null,
+    capacity: payload.capacity || 40,
+    allowLateSubmissions: payload.allowLateSubmissions ?? true,
+    latePenaltyPercent: payload.latePenaltyPercent ?? 10,
+    joinCode: joinCodeEnabled ? crypto.randomBytes(4).toString('hex').toUpperCase() : null,
+    joinCodeEnabled
+  }, { transaction });
+
+  await GradeCategory.bulkCreate([
+    { classId: classSection.id, name: 'Quizzes', categoryType: 'quiz', weightPercent: 20, orderIndex: 1 },
+    { classId: classSection.id, name: 'Assignments', categoryType: 'assignment', weightPercent: 25, orderIndex: 2 },
+    { classId: classSection.id, name: 'Laboratory Activities', categoryType: 'laboratory', weightPercent: 25, orderIndex: 3 },
+    { classId: classSection.id, name: 'Major Examination', categoryType: 'major_exam', weightPercent: 30, orderIndex: 4 }
+  ], { transaction });
+
+  if (instructorId) {
+    await InstructorAssignment.create({
+      classId: classSection.id,
+      instructorId,
+      isPrimary: true,
+      assignedBy
+    }, { transaction });
+  }
+
+  return classSection;
+}
+
 async function createClassSection(req, res, next) {
   const t = await sequelize.transaction();
   try {
     const payload = classSectionSchema.parse(req.body);
-    const classSection = await ClassSection.create({
-      courseOfferingId: payload.courseOfferingId,
-      sectionCode: payload.sectionCode,
-      name: payload.name,
-      room: payload.room || null,
-      schedule: payload.schedule || null,
-      capacity: payload.capacity || 40,
-      allowLateSubmissions: payload.allowLateSubmissions ?? true,
-      latePenaltyPercent: payload.latePenaltyPercent ?? 10
-    }, { transaction: t });
-
-    // Seed default weighted grade categories (20 / 25 / 25 / 30)
-    await GradeCategory.bulkCreate([
-      { classId: classSection.id, name: 'Quizzes', categoryType: 'quiz', weightPercent: 20, orderIndex: 1 },
-      { classId: classSection.id, name: 'Assignments', categoryType: 'assignment', weightPercent: 25, orderIndex: 2 },
-      { classId: classSection.id, name: 'Laboratory Activities', categoryType: 'laboratory', weightPercent: 25, orderIndex: 3 },
-      { classId: classSection.id, name: 'Major Examination', categoryType: 'major_exam', weightPercent: 30, orderIndex: 4 }
-    ], { transaction: t });
-
-    if (payload.instructorId) {
-      await InstructorAssignment.create({
-        classId: classSection.id,
-        instructorId: payload.instructorId,
-        isPrimary: true,
-        assignedBy: req.user.id
-      }, { transaction: t });
-    }
-
+    const classSection = await createClassSectionRecords(payload, payload.instructorId, req.user.id, t);
     await t.commit();
 
     await recordAudit({
@@ -1049,7 +1115,116 @@ async function createClassSection(req, res, next) {
       data: { classSection }
     });
   } catch (err) {
-    await t.rollback();
+    if (!t.finished) await t.rollback();
+    return next(err);
+  }
+}
+
+async function createInstructorClassSection(req, res, next) {
+  const t = await sequelize.transaction();
+  try {
+    const payload = instructorClassSectionSchema.parse(req.body);
+    let offering;
+    let offeringCreated = false;
+    let classPayload = payload;
+
+    if (payload.courseOfferingId) {
+      offering = await CourseOffering.findByPk(payload.courseOfferingId, { transaction: t });
+      if (!offering) throw new AppError('Course offering not found.', 404, 'OFFERING_NOT_FOUND');
+      if (offering.status !== 'published') {
+        throw new AppError('Only published course offerings can be used to create a class.', 400, 'OFFERING_NOT_PUBLISHED');
+      }
+    } else {
+      const [course, academicYear, semester] = await Promise.all([
+        Course.findByPk(payload.courseId, { transaction: t }),
+        AcademicYear.findByPk(payload.academicYearId, { transaction: t }),
+        Semester.findByPk(payload.semesterId, { transaction: t })
+      ]);
+
+      if (!course) throw new AppError('Course not found.', 404, 'COURSE_NOT_FOUND');
+      if (course.publicationStatus !== 'published') {
+        throw new AppError('Only published courses can be used to create a class.', 400, 'COURSE_NOT_PUBLISHED');
+      }
+      if (!academicYear || !semester) {
+        throw new AppError('Academic year or semester not found.', 404, 'ACADEMIC_TERM_NOT_FOUND');
+      }
+      if (semester.academicYearId !== academicYear.id) {
+        throw new AppError('The selected semester does not belong to the selected academic year.', 400, 'SEMESTER_YEAR_MISMATCH');
+      }
+      if (!['active', 'upcoming'].includes(academicYear.status) || !['active', 'upcoming'].includes(semester.status)) {
+        throw new AppError('Choose an active or upcoming academic year and semester.', 400, 'ACADEMIC_TERM_NOT_OPEN');
+      }
+
+      offering = await CourseOffering.findOne({
+        where: {
+          courseId: course.id,
+          academicYearId: academicYear.id,
+          semesterId: semester.id
+        },
+        order: [['id', 'DESC']],
+        transaction: t
+      });
+
+      if (offering && offering.status !== 'published') {
+        throw new AppError(
+          'This course already has a non-published offering for the selected term. Choose another term or ask an administrator to update the offering.',
+          409,
+          'OFFERING_NOT_PUBLISHED'
+        );
+      }
+
+      if (!offering) {
+        offering = await CourseOffering.create({
+          courseId: course.id,
+          academicYearId: academicYear.id,
+          semesterId: semester.id,
+          offeringCode: `${course.code}-${academicYear.id}-${semester.id}`,
+          enrollmentPolicy: 'instructor_approval',
+          status: 'published'
+        }, { transaction: t });
+        offeringCreated = true;
+      }
+
+      classPayload = { ...payload, courseOfferingId: offering.id };
+    }
+
+    const classSection = await createClassSectionRecords(classPayload, req.user.id, req.user.id, t, true);
+    await t.commit();
+
+    if (offeringCreated) {
+      await recordAudit({
+        req,
+        action: 'INSTRUCTOR_COURSE_OFFERING_CREATED',
+        category: 'academic',
+        entityType: 'CourseOffering',
+        entityId: offering.id,
+        metadata: {
+          courseId: offering.courseId,
+          academicYearId: offering.academicYearId,
+          semesterId: offering.semesterId,
+          offeringCode: offering.offeringCode
+        }
+      });
+    }
+
+    await recordAudit({
+      req,
+      action: 'INSTRUCTOR_CLASS_SECTION_CREATED',
+      category: 'academic',
+      entityType: 'ClassSection',
+      entityId: classSection.id,
+      metadata: { courseOfferingId: offering.id, sectionCode: payload.sectionCode }
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: offeringCreated
+        ? 'Course offering and class section created and assigned to you.'
+        : 'Class section created and assigned to you.',
+      data: { classSection, courseOffering: offering }
+    });
+  } catch (err) {
+    if (!t.finished) await t.rollback();
     return next(err);
   }
 }
@@ -1369,7 +1544,11 @@ async function enrollStudent(req, res, next) {
       transaction: t
     });
     if (!placement) {
-      throw new AppError('Student academic placement is not set for this year. Contact the registrar.', 403, 'PLACEMENT_REQUIRED');
+      throw new AppError(
+        'Direct enrollment requires academic placement. Ask your instructor for a class join code to request enrollment.',
+        403,
+        'PLACEMENT_REQUIRED'
+      );
     }
     if (!isPlacementEligibleForSection(placement, classSection)) {
       throw new AppError('Student is not eligible for this class section based on their academic placement.', 403, 'SECTION_NOT_ELIGIBLE');
@@ -1920,6 +2099,7 @@ module.exports = {
   listClasses,
   getClassById,
   createClassSection,
+  createInstructorClassSection,
   updateClassSection,
   deleteClassSection,
   updateClassEligibility,

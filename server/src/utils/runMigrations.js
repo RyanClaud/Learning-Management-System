@@ -4,7 +4,8 @@ const migrations = [
   ['20261103000001-add-student-placements.js', require('../migrations/20261103000001-add-student-placements')],
   ['20261105000001-add-joincodes-and-attendance.js', require('../migrations/20261105000001-add-joincodes-and-attendance')],
   ['20261105000001-widen-avatar-url.js', require('../migrations/20261105000001-widen-avatar-url')],
-  ['20261110000001-create-question-sets.js', require('../migrations/20261110000001-create-question-sets')]
+  ['20261110000001-create-question-sets.js', require('../migrations/20261110000001-create-question-sets')],
+  ['20261116000001-course-topic-quizzes-badges.js', require('../migrations/20261116000001-course-topic-quizzes-badges')]
 ];
 const logger = require('../config/logger');
 

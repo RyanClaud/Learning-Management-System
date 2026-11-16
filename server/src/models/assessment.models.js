@@ -10,7 +10,7 @@ module.exports = (sequelize) => {
     title: { type: DataTypes.STRING(220), allowNull: false },
     instructions: { type: DataTypes.TEXT('long'), allowNull: false },
     assignmentType: {
-      type: DataTypes.ENUM('standard', 'programming', 'laboratory', 'network_config', 'project_milestone'),
+      type: DataTypes.ENUM('standard', 'programming', 'laboratory', 'network_config', 'project_milestone', 'written_work', 'performance_task', 'project', 'recitation', 'case_study'),
       defaultValue: 'standard',
       field: 'assignment_type'
     },
@@ -204,9 +204,10 @@ module.exports = (sequelize) => {
 
   const Assessment = sequelize.define('Assessment', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    classId: { type: DataTypes.INTEGER, allowNull: false, field: 'class_id' },
+    classId: { type: DataTypes.INTEGER, allowNull: true, field: 'class_id' },
     courseId: { type: DataTypes.INTEGER, allowNull: false, field: 'course_id' },
     moduleId: { type: DataTypes.INTEGER, allowNull: true, field: 'module_id' },
+    lessonId: { type: DataTypes.INTEGER, allowNull: true, field: 'lesson_id' },
     gradeCategoryId: { type: DataTypes.INTEGER, allowNull: true, field: 'grade_category_id' },
     title: { type: DataTypes.STRING(220), allowNull: false },
     assessmentType: {
@@ -216,7 +217,7 @@ module.exports = (sequelize) => {
     },
     instructions: { type: DataTypes.TEXT, allowNull: false },
     startDate: { type: DataTypes.DATE, allowNull: true, field: 'start_date' },
-    closeDate: { type: DataTypes.DATE, allowNull: false, field: 'close_date' },
+    closeDate: { type: DataTypes.DATE, allowNull: true, field: 'close_date' },
     timeLimitMinutes: { type: DataTypes.INTEGER, defaultValue: 45, field: 'time_limit_minutes' },
     maxScore: { type: DataTypes.DECIMAL(6, 2), defaultValue: 100.00, field: 'max_score' },
     passingScore: { type: DataTypes.DECIMAL(6, 2), defaultValue: 75.00, field: 'passing_score' },
@@ -251,7 +252,7 @@ module.exports = (sequelize) => {
   const AssessmentAttempt = sequelize.define('AssessmentAttempt', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     assessmentId: { type: DataTypes.INTEGER, allowNull: false, field: 'assessment_id' },
-    classId: { type: DataTypes.INTEGER, allowNull: false, field: 'class_id' },
+    classId: { type: DataTypes.INTEGER, allowNull: true, field: 'class_id' },
     studentId: { type: DataTypes.INTEGER, allowNull: false, field: 'student_id' },
     attemptNumber: { type: DataTypes.INTEGER, defaultValue: 1, field: 'attempt_number' },
     status: {

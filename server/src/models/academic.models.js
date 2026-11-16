@@ -84,6 +84,7 @@ module.exports = (sequelize) => {
     level: { type: DataTypes.ENUM('Introductory', 'Intermediate', 'Advanced', 'Professional'), defaultValue: 'Intermediate' },
     deliveryMode: { type: DataTypes.ENUM('Instructor-Led', 'Self-Paced', 'Hybrid'), defaultValue: 'Instructor-Led', field: 'delivery_mode' },
     imageUrl: { type: DataTypes.STRING(500), allowNull: true, field: 'image_url' },
+    duration: { type: DataTypes.STRING(80), allowNull: true },
     learningObjectives: { type: DataTypes.JSON, defaultValue: [], field: 'learning_objectives' },
     prerequisites: { type: DataTypes.JSON, defaultValue: [] },
     labSupportEnabled: { type: DataTypes.BOOLEAN, defaultValue: true, field: 'lab_support_enabled' },

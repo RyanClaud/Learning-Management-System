@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { lmsApi, extractErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { MinsuSeal, MinsuCampusBanner, MinsuStatCard, MinsuCard, MinsuQuickLink } from '../components/ui/MinsuBrand';
 import {
   PageHeader,
   StatCard,
@@ -58,12 +59,12 @@ function ClassesThisTermTable({ classes = [], activeSemester, rowsPerPageDefault
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageDefault);
 
-  const total      = classes.length;
+  const total = classes.length;
   const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
-  const currentPg  = Math.min(page, totalPages);
-  const paged      = classes.slice((currentPg - 1) * rowsPerPage, currentPg * rowsPerPage);
-  const startIdx   = total === 0 ? 0 : (currentPg - 1) * rowsPerPage + 1;
-  const endIdx     = Math.min(currentPg * rowsPerPage, total);
+  const currentPg = Math.min(page, totalPages);
+  const paged = classes.slice((currentPg - 1) * rowsPerPage, currentPg * rowsPerPage);
+  const startIdx = total === 0 ? 0 : (currentPg - 1) * rowsPerPage + 1;
+  const endIdx = Math.min(currentPg * rowsPerPage, total);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -97,7 +98,7 @@ function ClassesThisTermTable({ classes = [], activeSemester, rowsPerPageDefault
             )}
             {paged.map((cls) => {
               const fillPct = cls.capacity > 0 ? Math.round((cls.enrolledCount / cls.capacity) * 100) : 0;
-              const isFull  = cls.enrolledCount >= cls.capacity;
+              const isFull = cls.enrolledCount >= cls.capacity;
               return (
                 <tr key={cls.id} className="hover:bg-slate-50">
                   {/* Section code */}
@@ -131,9 +132,8 @@ function ClassesThisTermTable({ classes = [], activeSemester, rowsPerPageDefault
                     {/* Capacity bar */}
                     <div className="w-full bg-slate-100 rounded-full h-1 mt-1 overflow-hidden">
                       <div
-                        className={`h-1 rounded-full ${
-                          fillPct >= 90 ? 'bg-red-500' : fillPct >= 70 ? 'bg-amber-400' : 'bg-emerald-500'
-                        }`}
+                        className={`h-1 rounded-full ${fillPct >= 90 ? 'bg-red-500' : fillPct >= 70 ? 'bg-amber-400' : 'bg-emerald-500'
+                          }`}
                         style={{ width: `${Math.min(100, fillPct)}%` }}
                       />
                     </div>
@@ -204,55 +204,61 @@ export function AcademicDashboardPage() {
   const d = data?.data || {};
   const m = d.metrics || {};
   const recentUsers = usersData?.data?.users || [];
-  const totalUsers  = usersData?.data?.pagination?.total ?? 0;
+  const totalUsers = usersData?.data?.pagination?.total ?? 0;
 
   const activeSemesterLabel = m.activeSemester
     ? `${m.activeSemester}${m.activeAcademicYear ? ` · ${m.activeAcademicYear}` : ''}`
     : 'No active semester configured';
 
-  const classes       = d.classesAtAGlance || [];
-  const totalCap      = classes.reduce((a, c) => a + (c.capacity || 0), 0);
+  const classes = d.classesAtAGlance || [];
+  const totalCap = classes.reduce((a, c) => a + (c.capacity || 0), 0);
   const totalEnrolled = classes.reduce((a, c) => a + (c.enrolledCount || 0), 0);
-  const fillRate      = totalCap > 0 ? Math.round((totalEnrolled / totalCap) * 100) : 0;
-  const unassigned    = classes.filter((c) => !c.hasInstructor).length;
+  const fillRate = totalCap > 0 ? Math.round((totalEnrolled / totalCap) * 100) : 0;
+  const unassigned = classes.filter((c) => !c.hasInstructor).length;
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        badge="Academic Administration"
-        title={`Welcome back, ${user?.firstName || 'Administrator'}`}
-        subtitle={`Active Term: ${activeSemesterLabel}`}
+      <MinsuCampusBanner
+        title="Academic Administrator"
+        subtitle="Manage. Oversee. Excel."
+        roleBadge="Academic Administration"
+        actions={
+          <span className="text-xs font-semibold text-emerald-100 bg-white/10 px-3 py-1 rounded-full border border-white/20">
+            Active Term: {activeSemesterLabel}
+          </span>
+        }
       />
+      <h1 className="sr-only">Welcome back, {user?.firstName || 'Administrator'}</h1>
 
-      {/* ── Stat cards — admin-focused ───────────────────────────────────── */}
+      {/* ── 4 KPI Stat Cards (Matching Mockup) ─────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
+        <MinsuStatCard
           title="Departments"
           value={m.totalDepartments ?? 0}
           subtitle={`${m.totalPrograms ?? 0} degree programs`}
           icon={Building2}
+          accent="green"
+        />
+        <MinsuStatCard
+          title="Programs"
+          value={m.totalPrograms ?? 0}
+          subtitle="Academic curriculum"
+          icon={BookOpen}
           accent="blue"
         />
-        <StatCard
-          title="Total Users"
-          value={totalUsers}
-          subtitle="Institutional accounts"
-          icon={Users}
-          accent="indigo"
-        />
-        <StatCard
-          title="Courses Offered"
-          value={m.totalCourses ?? 0}
-          subtitle={`${m.totalClasses ?? 0} class sections this term`}
-          icon={BookOpen}
-          accent="emerald"
-        />
-        <StatCard
-          title="Enrollments"
-          value={m.totalEnrollments ?? 0}
-          subtitle={`${fillRate}% capacity · ${unassigned > 0 ? `${unassigned} unassigned` : 'All assigned'}`}
+        <MinsuStatCard
+          title="Class Sections"
+          value={m.totalClasses ?? 0}
+          subtitle={`${m.totalCourses ?? 0} courses offered`}
           icon={GraduationCap}
-          accent="amber"
+          accent="purple"
+        />
+        <MinsuStatCard
+          title="Enrolled Students"
+          value={m.totalEnrollments ?? 0}
+          subtitle={`${fillRate}% capacity fill rate`}
+          icon={Users}
+          accent="gold"
         />
       </div>
 
@@ -287,11 +293,11 @@ export function AcademicDashboardPage() {
         <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
           <h2 className="text-base font-bold text-slate-900">Quick Actions</h2>
           {[
-            { label: 'Manage Users',           desc: 'Create, edit, reset accounts',   to: '/academic/users',         color: 'bg-blue-600 hover:bg-blue-700' },
-            { label: 'Departments & Programs', desc: 'Academic structure',              to: '/academic/structure',     color: 'bg-indigo-600 hover:bg-indigo-700' },
-            { label: 'Years & Semesters',      desc: 'Configure academic terms',        to: '/academic/terms',         color: 'bg-violet-600 hover:bg-violet-700' },
-            { label: 'Announcements',          desc: 'Post institutional notices',      to: '/academic/announcements', color: 'bg-emerald-600 hover:bg-emerald-700' },
-            { label: 'Analytics',              desc: 'View institutional insights',     to: '/academic/analytics',     color: 'bg-amber-600 hover:bg-amber-700' }
+            { label: 'Manage Users', desc: 'Create, edit, reset accounts', to: '/academic/users', color: 'bg-blue-600 hover:bg-blue-700' },
+            { label: 'Departments & Programs', desc: 'Academic structure', to: '/academic/structure', color: 'bg-indigo-600 hover:bg-indigo-700' },
+            { label: 'Years & Semesters', desc: 'Configure academic terms', to: '/academic/terms', color: 'bg-violet-600 hover:bg-violet-700' },
+            { label: 'Announcements', desc: 'Post institutional notices', to: '/academic/announcements', color: 'bg-emerald-600 hover:bg-emerald-700' },
+            { label: 'Analytics', desc: 'View institutional insights', to: '/academic/analytics', color: 'bg-amber-600 hover:bg-amber-700' }
           ].map((a) => (
             <Link key={a.to} to={a.to}
               className={`flex items-center justify-between w-full px-4 py-3 ${a.color} text-white rounded-lg transition-colors`}>
@@ -448,7 +454,7 @@ export function DepartmentsAndProgramsPage() {
   });
 
   const departments = deptData?.data?.departments || [];
-  const programs    = progData?.data?.programs    || [];
+  const programs = progData?.data?.programs || [];
 
   const totalPrograms = programs.length;
   const totalPages = Math.max(1, Math.ceil(totalPrograms / progRowsPerPage));
@@ -516,13 +522,13 @@ export function DepartmentsAndProgramsPage() {
   const openEditProg = (p) => {
     setEditingProg(p);
     setEditProgForm({
-      departmentId:  p.departmentId,
-      code:          p.code,
-      name:          p.name,
-      degreeType:    p.degreeType || 'Bachelor',
+      departmentId: p.departmentId,
+      code: p.code,
+      name: p.name,
+      degreeType: p.degreeType || 'Bachelor',
       durationYears: p.durationYears || 4,
-      description:   p.description || '',
-      status:        p.status
+      description: p.description || '',
+      status: p.status
     });
   };
 
@@ -1637,8 +1643,8 @@ export function TermsManagementPage() {
     queryFn: lmsApi.listSemesters
   });
 
-  const years     = yearsData?.data?.academicYears || [];
-  const semesters = semsData?.data?.semesters      || [];
+  const years = yearsData?.data?.academicYears || [];
+  const semesters = semsData?.data?.semesters || [];
 
   // Auto-select first year in semester form once loaded
   React.useEffect(() => {
@@ -1648,7 +1654,7 @@ export function TermsManagementPage() {
         ...f,
         academicYearId: first.id,
         startDate: first.startDate || '',
-        endDate:   first.endDate   || ''
+        endDate: first.endDate || ''
       }));
     }
   }, [years]);
@@ -1682,7 +1688,7 @@ export function TermsManagementPage() {
     if (!selectedAy) return;
     try {
       await lmsApi.updateAcademicYear(selectedAy.id, {
-        status:    ayPanelStatus,
+        status: ayPanelStatus,
         isCurrent: ayPanelStatus === 'active' ? ayPanelCurrent : false
       });
       addToast('Academic year updated.');
@@ -1724,7 +1730,7 @@ export function TermsManagementPage() {
     if (!selectedSem) return;
     try {
       await lmsApi.updateSemester(selectedSem.id, {
-        status:    semPanelStatus,
+        status: semPanelStatus,
         isCurrent: semPanelStatus === 'active' ? semPanelCurrent : false
       });
       addToast('Semester updated.');
@@ -1999,7 +2005,7 @@ export function TermsManagementPage() {
                     ...f,
                     academicYearId: Number(e.target.value),
                     startDate: yr?.startDate || '',
-                    endDate:   yr?.endDate   || ''
+                    endDate: yr?.endDate || ''
                   }));
                 }}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white"
@@ -2102,17 +2108,17 @@ export function CoursesAndOfferingsPage() {
   const { addToast } = useToast();
 
   // ── Create modals ─────────────────────────────────────────────────────────
-  const [courseOpen, setCourseOpen]     = useState(false);
+  const [courseOpen, setCourseOpen] = useState(false);
   const [offeringOpen, setOfferingOpen] = useState(false);
 
   // ── Edit state ────────────────────────────────────────────────────────────
-  const [editingCourse,   setEditingCourse]   = useState(null);
+  const [editingCourse, setEditingCourse] = useState(null);
   const [editingOffering, setEditingOffering] = useState(null);
-  const [editCourseForm,   setEditCourseForm]   = useState({});
+  const [editCourseForm, setEditCourseForm] = useState({});
   const [editOfferingForm, setEditOfferingForm] = useState({});
 
   // ── Delete confirmation ───────────────────────────────────────────────────
-  const [deletingCourseId,   setDeletingCourseId]   = useState(null);
+  const [deletingCourseId, setDeletingCourseId] = useState(null);
   const [deletingOfferingId, setDeletingOfferingId] = useState(null);
 
   // ── Create form state (all IDs start empty — filled dynamically) ──────────
@@ -2128,19 +2134,19 @@ export function CoursesAndOfferingsPage() {
   });
 
   // ── Queries ───────────────────────────────────────────────────────────────
-  const { data: coursesData,   isLoading } = useQuery({ queryKey: ['courses'],          queryFn: () => lmsApi.listCourses() });
-  const { data: offeringsData }            = useQuery({ queryKey: ['course-offerings'], queryFn: lmsApi.listOfferings });
-  const { data: deptsData }                = useQuery({ queryKey: ['departments'],       queryFn: lmsApi.listDepartments });
-  const { data: progsData }                = useQuery({ queryKey: ['programs'],          queryFn: lmsApi.listPrograms });
-  const { data: yearsData }                = useQuery({ queryKey: ['academic-years'],    queryFn: lmsApi.listAcademicYears });
-  const { data: semsData }                 = useQuery({ queryKey: ['semesters'],         queryFn: lmsApi.listSemesters });
+  const { data: coursesData, isLoading } = useQuery({ queryKey: ['courses'], queryFn: () => lmsApi.listCourses() });
+  const { data: offeringsData } = useQuery({ queryKey: ['course-offerings'], queryFn: lmsApi.listOfferings });
+  const { data: deptsData } = useQuery({ queryKey: ['departments'], queryFn: lmsApi.listDepartments });
+  const { data: progsData } = useQuery({ queryKey: ['programs'], queryFn: lmsApi.listPrograms });
+  const { data: yearsData } = useQuery({ queryKey: ['academic-years'], queryFn: lmsApi.listAcademicYears });
+  const { data: semsData } = useQuery({ queryKey: ['semesters'], queryFn: lmsApi.listSemesters });
 
-  const courses     = coursesData?.data?.courses     || [];
-  const offerings   = offeringsData?.data?.offerings || [];
-  const departments = deptsData?.data?.departments   || [];
-  const programs    = progsData?.data?.programs      || [];
-  const years       = yearsData?.data?.academicYears || [];
-  const semesters   = semsData?.data?.semesters      || [];
+  const courses = coursesData?.data?.courses || [];
+  const offerings = offeringsData?.data?.offerings || [];
+  const departments = deptsData?.data?.departments || [];
+  const programs = progsData?.data?.programs || [];
+  const years = yearsData?.data?.academicYears || [];
+  const semesters = semsData?.data?.semesters || [];
 
   // Auto-select first items once loaded
   React.useEffect(() => {
@@ -2343,14 +2349,14 @@ export function CoursesAndOfferingsPage() {
           <label className="block font-semibold mb-1">Level</label>
           <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })}
             className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white">
-            {['Introductory','Intermediate','Advanced','Professional'].map((l) => <option key={l}>{l}</option>)}
+            {['Introductory', 'Intermediate', 'Advanced', 'Professional'].map((l) => <option key={l}>{l}</option>)}
           </select>
         </div>
         <div>
           <label className="block font-semibold mb-1">Delivery Mode</label>
           <select value={form.deliveryMode} onChange={(e) => setForm({ ...form, deliveryMode: e.target.value })}
             className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white">
-            {['Instructor-Led','Self-Paced','Hybrid'].map((m) => <option key={m}>{m}</option>)}
+            {['Instructor-Led', 'Self-Paced', 'Hybrid'].map((m) => <option key={m}>{m}</option>)}
           </select>
         </div>
       </div>
@@ -2358,7 +2364,7 @@ export function CoursesAndOfferingsPage() {
         <label className="block font-semibold mb-1">Publication Status</label>
         <select value={form.publicationStatus} onChange={(e) => setForm({ ...form, publicationStatus: e.target.value })}
           className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white">
-          {['draft','published','archived'].map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
+          {['draft', 'published', 'archived'].map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
         </select>
       </div>
     </>
@@ -2411,7 +2417,7 @@ export function CoursesAndOfferingsPage() {
         <label className="block font-semibold mb-1">Status</label>
         <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}
           className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white">
-          {['draft','published','completed','archived'].map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
+          {['draft', 'published', 'completed', 'archived'].map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
         </select>
       </div>
     </>
@@ -2580,7 +2586,7 @@ export function ClassesAndSectionsPage() {
   const { addToast } = useToast();
 
   // ── Modal open state ──────────────────────────────────────────────────────
-  const [classOpen,    setClassOpen]    = useState(false);
+  const [classOpen, setClassOpen] = useState(false);
   const [editingClass, setEditingClass] = useState(null);   // class object being edited
   const [taModalClass, setTaModalClass] = useState(null);   // class for TA config modal
   const [instructorModalClass, setInstructorModalClass] = useState(null); // class for instructor assign modal
@@ -2624,10 +2630,10 @@ export function ClassesAndSectionsPage() {
     queryFn: () => lmsApi.listUsers({ role: 'teaching_assistant', status: 'active', limit: 100 })
   });
 
-  const classes      = classesData?.data?.classes       || [];
-  const offerings    = offeringsData?.data?.offerings    || [];
-  const instructors  = instructorsData?.data?.users      || [];
-  const teachingAsst = tasData?.data?.users              || [];
+  const classes = classesData?.data?.classes || [];
+  const offerings = offeringsData?.data?.offerings || [];
+  const instructors = instructorsData?.data?.users || [];
+  const teachingAsst = tasData?.data?.users || [];
 
   // Auto-select first offering once loaded
   React.useEffect(() => {
@@ -2701,11 +2707,11 @@ export function ClassesAndSectionsPage() {
     const existing = cls.taAssignments?.[0];
     setTaConfig({
       taUserId: existing?.taUserId || (teachingAsst[0]?.id ?? ''),
-      canViewRoster:         existing?.canViewRoster         ?? true,
-      canReviewSubmissions:  existing?.canReviewSubmissions   ?? true,
-      canApplyRubrics:       existing?.canApplyRubrics        ?? true,
-      canManageDiscussions:  existing?.canManageDiscussions   ?? true,
-      canUploadResources:    existing?.canUploadResources     ?? false
+      canViewRoster: existing?.canViewRoster ?? true,
+      canReviewSubmissions: existing?.canReviewSubmissions ?? true,
+      canApplyRubrics: existing?.canApplyRubrics ?? true,
+      canManageDiscussions: existing?.canManageDiscussions ?? true,
+      canUploadResources: existing?.canUploadResources ?? false
     });
   };
 
@@ -2968,11 +2974,11 @@ export function ClassesAndSectionsPage() {
           </div>
           <p className="text-slate-500 text-[11px]">TAs cannot publish final grades or alter system settings.</p>
           {[
-            { key: 'canViewRoster',         label: 'View Class Student Roster' },
-            { key: 'canReviewSubmissions',  label: 'Monitor & Review Student Submissions' },
-            { key: 'canApplyRubrics',       label: 'Apply Grading Rubrics & Preliminary Feedback' },
-            { key: 'canManageDiscussions',  label: 'Participate & Resolve Class Discussions' },
-            { key: 'canUploadResources',    label: 'Upload Supplementary Lab Worksheets' }
+            { key: 'canViewRoster', label: 'View Class Student Roster' },
+            { key: 'canReviewSubmissions', label: 'Monitor & Review Student Submissions' },
+            { key: 'canApplyRubrics', label: 'Apply Grading Rubrics & Preliminary Feedback' },
+            { key: 'canManageDiscussions', label: 'Participate & Resolve Class Discussions' },
+            { key: 'canUploadResources', label: 'Upload Supplementary Lab Worksheets' }
           ].map((item) => (
             <label key={item.key} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-slate-200 cursor-pointer">
               <input type="checkbox" checked={!!taConfig[item.key]}
@@ -3017,14 +3023,14 @@ export function EnrollmentManagementPage() {
 
   // ── Class selection & status filter ──────────────────────────────────────
   const [selectedClassId, setSelectedClassId] = useState('');
-  const [statusFilter,    setStatusFilter]    = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   // ── Direct enrollment form ────────────────────────────────────────────────
   const [studentIdToEnroll, setStudentIdToEnroll] = useState('');
 
   // ── Transfer form ─────────────────────────────────────────────────────────
-  const [transferOpen,  setTransferOpen]  = useState(false);
-  const [transferForm,  setTransferForm]  = useState({ fromClassId: '', toClassId: '', studentId: '' });
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferForm, setTransferForm] = useState({ fromClassId: '', toClassId: '', studentId: '' });
 
   // ── Drop confirmation ─────────────────────────────────────────────────────
   const [droppingId, setDroppingId] = useState(null);
@@ -3048,8 +3054,8 @@ export function EnrollmentManagementPage() {
     enabled: true
   });
 
-  const classes     = classesData?.data?.classes     || [];
-  const students    = studentsData?.data?.users       || [];
+  const classes = classesData?.data?.classes || [];
+  const students = studentsData?.data?.users || [];
   const allEnrollments = enrollmentsData?.data?.enrollments || [];
 
   // Auto-select first class once loaded
@@ -3064,9 +3070,9 @@ export function EnrollmentManagementPage() {
     : allEnrollments.filter((e) => e.status === statusFilter);
 
   // Counts by status for the header badges
-  const pending  = allEnrollments.filter((e) => e.status === 'pending').length;
+  const pending = allEnrollments.filter((e) => e.status === 'pending').length;
   const enrolled = allEnrollments.filter((e) => e.status === 'enrolled').length;
-  const dropped  = allEnrollments.filter((e) => e.status === 'dropped').length;
+  const dropped = allEnrollments.filter((e) => e.status === 'dropped').length;
 
   // Find selected class object (for capacity display)
   const selectedClass = classes.find((c) => c.id === Number(selectedClassId));
@@ -3106,8 +3112,8 @@ export function EnrollmentManagementPage() {
     try {
       await lmsApi.transferStudent({
         fromClassId: Number(transferForm.fromClassId),
-        toClassId:   Number(transferForm.toClassId),
-        studentId:   Number(transferForm.studentId)
+        toClassId: Number(transferForm.toClassId),
+        studentId: Number(transferForm.studentId)
       });
       addToast('Student transferred successfully.');
       setTransferOpen(false);
@@ -3213,9 +3219,9 @@ export function EnrollmentManagementPage() {
           )}
           <div className="grid grid-cols-3 gap-2 pt-1">
             {[
-              { label: 'Enrolled',  val: enrolled, color: 'text-emerald-600' },
-              { label: 'Pending',   val: pending,  color: 'text-amber-600'   },
-              { label: 'Dropped',   val: dropped,  color: 'text-red-500'     }
+              { label: 'Enrolled', val: enrolled, color: 'text-emerald-600' },
+              { label: 'Pending', val: pending, color: 'text-amber-600' },
+              { label: 'Dropped', val: dropped, color: 'text-red-500' }
             ].map((s) => (
               <div key={s.label} className="text-center p-2 rounded-lg bg-slate-50 border border-slate-200">
                 <p className={`text-lg font-bold ${s.color}`}>{s.val}</p>
@@ -3224,9 +3230,9 @@ export function EnrollmentManagementPage() {
             ))}
           </div>
           <button type="button" onClick={() => {
-              setTransferForm({ fromClassId: selectedClassId, toClassId: '', studentId: '' });
-              setTransferOpen(true);
-            }}
+            setTransferForm({ fromClassId: selectedClassId, toClassId: '', studentId: '' });
+            setTransferOpen(true);
+          }}
             className="w-full py-2 border border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-semibold rounded-lg">
             Transfer a Student
           </button>
@@ -3246,11 +3252,10 @@ export function EnrollmentManagementPage() {
           <div className="flex items-center gap-1 text-xs">
             {['all', 'enrolled', 'pending', 'dropped', 'transferred', 'completed'].map((s) => (
               <button key={s} onClick={() => setStatusFilter(s)}
-                className={`px-2.5 py-1 rounded-lg font-semibold capitalize transition-colors ${
-                  statusFilter === s
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}>
+                className={`px-2.5 py-1 rounded-lg font-semibold capitalize transition-colors ${statusFilter === s
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}>
                 {s}
               </button>
             ))}
@@ -3409,9 +3414,9 @@ export function GradeApprovalsPage() {
   const { addToast } = useToast();
 
   // ── Filters & expanded gradebook state ───────────────────────────────────
-  const [showAll, setShowAll]             = useState(false);   // toggle all classes vs submitted only
+  const [showAll, setShowAll] = useState(false);   // toggle all classes vs submitted only
   const [expandedClassId, setExpandedClassId] = useState(null); // which class shows gradebook
-  const [gradebook, setGradebook]         = useState(null);    // loaded gradebook data
+  const [gradebook, setGradebook] = useState(null);    // loaded gradebook data
   const [gradebookLoading, setGradebookLoading] = useState(false);
 
   // ── Confirmation dialog state ─────────────────────────────────────────────
@@ -3440,8 +3445,8 @@ export function GradeApprovalsPage() {
 
   if (isLoading) return <LoadingState />;
 
-  const allClasses  = classesData?.data?.classes || [];
-  const classes     = showAll
+  const allClasses = classesData?.data?.classes || [];
+  const classes = showAll
     ? allClasses
     : allClasses.filter((c) => c.finalGradesStatus === 'submitted_for_approval');
 
@@ -3476,9 +3481,9 @@ export function GradeApprovalsPage() {
   const handleConfirm = () => {
     if (!pendingAction) return;
     decisionMutation.mutate({
-      classId:  pendingAction.classId,
+      classId: pendingAction.classId,
       decision: pendingAction.decision,
-      remarks:  actionRemarks || undefined
+      remarks: actionRemarks || undefined
     });
   };
 
@@ -3522,9 +3527,9 @@ export function GradeApprovalsPage() {
       ) : (
         <div className="space-y-4">
           {classes.map((cls) => {
-            const isExpanded    = expandedClassId === cls.id;
-            const isPending     = cls.finalGradesStatus === 'submitted_for_approval';
-            const instructors   = (cls.instructorAssignments || [])
+            const isExpanded = expandedClassId === cls.id;
+            const isPending = cls.finalGradesStatus === 'submitted_for_approval';
+            const instructors = (cls.instructorAssignments || [])
               .map((ia) => `${ia.instructor?.firstName || ''} ${ia.instructor?.lastName || ''}`.trim())
               .filter(Boolean)
               .join(', ') || 'Unassigned';
@@ -3697,11 +3702,10 @@ export function GradeApprovalsPage() {
             <button
               onClick={handleConfirm}
               disabled={decisionMutation.isPending || (pendingAction.decision === 'returned' && !actionRemarks.trim())}
-              className={`px-4 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-50 ${
-                pendingAction.decision === 'returned'
-                  ? 'bg-amber-600 hover:bg-amber-700'
-                  : 'bg-emerald-600 hover:bg-emerald-700'
-              }`}
+              className={`px-4 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-50 ${pendingAction.decision === 'returned'
+                ? 'bg-amber-600 hover:bg-amber-700'
+                : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
             >
               {decisionMutation.isPending ? 'Processing…' : pendingAction.decision === 'returned' ? 'Return to Instructor' : 'Approve & Publish'}
             </button>

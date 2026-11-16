@@ -15,7 +15,11 @@ const env = {
   DB_NAME: process.env.DB_NAME || 'lms_production',
   DB_USER: process.env.DB_USER || 'lms_user',
   DB_PASSWORD: process.env.DB_PASSWORD || '',
-  DB_STORAGE: process.env.DB_STORAGE || path.resolve(__dirname, '../../data/lms_database.sqlite'),
+  DB_STORAGE: process.env.DB_STORAGE
+    ? (path.isAbsolute(process.env.DB_STORAGE)
+        ? process.env.DB_STORAGE
+        : path.resolve(__dirname, '../../data', path.basename(process.env.DB_STORAGE)))
+    : path.resolve(__dirname, '../../data/lms_database.sqlite'),
   SESSION_SECRET: process.env.SESSION_SECRET || 'dev_only_fallback_secret_replace_in_production_immediately_9f8a7b6c5d4e3f2a1b',
   SESSION_NAME: process.env.SESSION_NAME || 'lms.sid',
   SESSION_MAX_AGE_MS: parseInt(process.env.SESSION_MAX_AGE_MS || '28800000', 10),

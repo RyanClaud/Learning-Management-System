@@ -8,6 +8,7 @@ import {
   Loader2,
   Inbox
 } from 'lucide-react';
+import minsuCampusBg from '../../assets/minsu-bg.jpg';
 
 const ToastContext = createContext(null);
 
@@ -108,46 +109,155 @@ export function StatusBadge({ status }) {
   );
 }
 
-export function StatCard({ title, value, subtitle, icon: Icon, accent = 'blue' }) {
+export function StatCard({ title, value, subtitle, icon: Icon, accent = 'green', linkTo, linkLabel = 'View All' }) {
   const accentMap = {
+    green: 'bg-emerald-50 text-[#087A45] border-emerald-100',
+    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    gold: 'bg-amber-50 text-[#B38612] border-amber-200',
     blue: 'bg-blue-50 text-blue-600 border-blue-100',
-    emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    amber: 'bg-amber-50 text-amber-600 border-amber-100',
     indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100',
-    rose: 'bg-rose-50 text-rose-600 border-rose-100'
+    amber: 'bg-amber-50 text-amber-600 border-amber-100',
+    rose: 'bg-rose-50 text-rose-600 border-rose-100',
+    purple: 'bg-purple-50 text-purple-700 border-purple-100'
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-sm hover:shadow transition-shadow">
+    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs hover:shadow-sm transition-all flex flex-col justify-between">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1.5">{value}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold text-[#172B24] tracking-tight mt-1.5">{value}</p>
           {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
         </div>
         {Icon && (
-          <div className={`p-2.5 rounded-lg border ${accentMap[accent] || accentMap.blue}`}>
+          <div className={`p-3 rounded-2xl border shrink-0 ${accentMap[accent] || accentMap.green}`}>
             <Icon className="w-5 h-5" />
           </div>
         )}
       </div>
+      {linkTo && (
+        <div className="mt-3 pt-3 border-t border-slate-100 flex justify-end">
+          <a href={linkTo} className="text-xs font-bold text-[#087A45] hover:text-[#004D32] hover:underline inline-flex items-center gap-1">
+            {linkLabel} →
+          </a>
+        </div>
+      )}
     </div>
   );
 }
 
+export function PrimaryButton({ children, onClick, type = 'button', disabled = false, className = '', icon: Icon }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#087A45] hover:bg-[#004D32] text-white shadow-xs disabled:opacity-50 transition-colors ${className}`}
+    >
+      {Icon && <Icon className="w-4 h-4" />}
+      {children}
+    </button>
+  );
+}
+
+export function SecondaryButton({ children, onClick, type = 'button', disabled = false, className = '', icon: Icon }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 disabled:opacity-50 transition-colors ${className}`}
+    >
+      {Icon && <Icon className="w-4 h-4" />}
+      {children}
+    </button>
+  );
+}
+
+export function GoldButton({ children, onClick, type = 'button', disabled = false, className = '', icon: Icon }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#E5B52B] hover:bg-[#c99a1b] text-slate-950 shadow-xs disabled:opacity-50 transition-colors ${className}`}
+    >
+      {Icon && <Icon className="w-4 h-4" />}
+      {children}
+    </button>
+  );
+}
+
+export function DashboardCard({ title, icon: Icon, action, children, className = '' }) {
+  return (
+    <div className={`bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden ${className}`}>
+      <div className="px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5">
+          {Icon && (
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#087A45] border border-emerald-100 flex items-center justify-center shrink-0">
+              <Icon className="w-4 h-4" />
+            </div>
+          )}
+          <h2 className="text-sm font-bold text-[#172B24] tracking-tight">{title}</h2>
+        </div>
+        {action && <div>{action}</div>}
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+export { MinsuSeal, MinsuCampusBanner, MinsuStatCard, MinsuCard, MinsuQuickLink } from './MinsuBrand';
+
 export function PageHeader({ badge, title, subtitle, actions }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-slate-200 mb-6">
-      <div>
-        {badge && (
-          <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md mb-2">
-            {badge}
-          </span>
-        )}
-        <h1 className="text-[28px] font-bold leading-tight text-slate-900 tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-2 text-base leading-relaxed text-slate-600">{subtitle}</p>}
+    <div className="relative overflow-hidden rounded-2xl text-white shadow-md border border-[#003824] p-5 sm:p-6 mb-6">
+      {/* Real MinSU Campus Building Photograph Background */}
+      <div
+        className="absolute inset-0 bg-cover bg-center select-none"
+        style={{
+          backgroundImage: `url(${minsuCampusBg})`,
+          backgroundPosition: 'center 40%'
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Dark Green Gradient Wash: high contrast on text, revealing campus scenery */}
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-[#003824]/95 via-[#004D32]/85 to-[#087A45]/45"
+        aria-hidden="true"
+      />
+
+      {/* Gold & Emerald Curved Sweep on right */}
+      <div className="absolute right-0 top-0 bottom-0 w-80 pointer-events-none select-none hidden md:block overflow-hidden">
+        <div className="absolute -right-10 -top-10 w-80 h-80 rounded-full border-[5px] border-[#E5B52B]/30 pointer-events-none" />
+        <div className="absolute -right-20 -bottom-10 w-96 h-96 rounded-full border-[10px] border-[#159957]/30 pointer-events-none" />
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
+
+      <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="max-w-2xl">
+          {badge && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-black/30 text-[#E5B52B] border border-[#E5B52B]/40 backdrop-blur-md mb-2 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E5B52B] animate-pulse" />
+              {badge}
+            </span>
+          )}
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white leading-tight drop-shadow-xs">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="mt-1 text-xs sm:text-sm text-emerald-100 font-medium leading-relaxed max-w-xl drop-shadow-xs">
+              {subtitle}
+            </p>
+          )}
+        </div>
+
+        {actions && (
+          <div className="relative z-10 flex flex-wrap items-center gap-2.5 shrink-0">
+            {actions}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
