@@ -4,6 +4,7 @@ const migrations = [
   require('../migrations/20261103000001-add-student-placements'),
   require('../migrations/20261105000001-add-joincodes-and-attendance'),
   require('../migrations/20261105000001-widen-avatar-url'),
+  require('../migrations/20261106000001-widen-assignment-lesson-types'),
   require('../migrations/20261110000001-create-question-sets'),
   require('../migrations/20261116000001-course-topic-quizzes-badges')
 ];
@@ -14,6 +15,8 @@ async function resetDatabase() {
   const dialect = sequelize.getDialect();
   if (dialect === 'sqlite') {
     await sequelize.query('PRAGMA foreign_keys = OFF');
+  } else if (dialect === 'mysql') {
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
   }
   for (const migration of [...migrations].reverse()) {
     await migration.down(queryInterface);
@@ -23,6 +26,8 @@ async function resetDatabase() {
   }
   if (dialect === 'sqlite') {
     await sequelize.query('PRAGMA foreign_keys = ON');
+  } else if (dialect === 'mysql') {
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
   }
   await seeder.up();
 }
