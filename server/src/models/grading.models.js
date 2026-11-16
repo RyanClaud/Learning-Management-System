@@ -73,7 +73,7 @@ module.exports = (sequelize) => {
     verificationHash: { type: DataTypes.STRING(128), allowNull: false, unique: true, field: 'verification_hash' },
     studentId: { type: DataTypes.INTEGER, allowNull: false, field: 'student_id' },
     courseId: { type: DataTypes.INTEGER, allowNull: false, field: 'course_id' },
-    classId: { type: DataTypes.INTEGER, allowNull: false, field: 'class_id' },
+    classId: { type: DataTypes.INTEGER, allowNull: true, field: 'class_id' },
     recipientName: { type: DataTypes.STRING(200), allowNull: false, field: 'recipient_name' },
     courseTitle: { type: DataTypes.STRING(220), allowNull: false, field: 'course_title' },
     courseCode: { type: DataTypes.STRING(40), allowNull: false, field: 'course_code' },
@@ -86,7 +86,52 @@ module.exports = (sequelize) => {
     indexes: [
       { fields: ['certificate_code'], unique: true },
       { fields: ['student_id'] },
-      { fields: ['class_id', 'student_id'], unique: true }
+      { fields: ['course_id', 'student_id'] }
+    ]
+  });
+
+  const Badge = sequelize.define('Badge', {
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    badgeCode: { type: DataTypes.STRING(80), allowNull: false, unique: true, field: 'badge_code' },
+    verificationHash: { type: DataTypes.STRING(128), allowNull: false, unique: true, field: 'verification_hash' },
+    title: { type: DataTypes.STRING(200), allowNull: false },
+    description: { type: DataTypes.TEXT, allowNull: true },
+    icon: { type: DataTypes.STRING(100), defaultValue: 'award' },
+    category: { type: DataTypes.STRING(80), defaultValue: 'course_achievement' },
+    criteriaType: {
+      type: DataTypes.ENUM('course_completion', 'perfect_quiz', 'module_mastery', 'first_attempt_pass', 'participation'),
+      defaultValue: 'course_completion',
+      field: 'criteria_type'
+    },
+    criteriaThreshold: { type: DataTypes.DECIMAL(5, 2), allowNull: true, field: 'criteria_threshold' },
+    courseId: { type: DataTypes.INTEGER, allowNull: true, field: 'course_id' },
+    createdBy: { type: DataTypes.INTEGER, allowNull: true, field: 'created_by' },
+    status: { type: DataTypes.ENUM('active', 'revoked'), defaultValue: 'active' }
+  }, {
+    tableName: 'badges',
+    indexes: [
+      { fields: ['badge_code'], unique: true },
+      { fields: ['verification_hash'], unique: true },
+      { fields: ['course_id'] }
+    ]
+  });
+
+  const StudentBadge = sequelize.define('StudentBadge', {
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    badgeId: { type: DataTypes.INTEGER, allowNull: false, field: 'badge_id' },
+    studentId: { type: DataTypes.INTEGER, allowNull: false, field: 'student_id' },
+    courseId: { type: DataTypes.INTEGER, allowNull: true, field: 'course_id' },
+    badgeCode: { type: DataTypes.STRING(80), allowNull: false, unique: true, field: 'badge_code' },
+    verificationHash: { type: DataTypes.STRING(128), allowNull: false, unique: true, field: 'verification_hash' },
+    earnedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, field: 'earned_at' },
+    metadata: { type: DataTypes.JSON, defaultValue: {} },
+    status: { type: DataTypes.ENUM('active', 'revoked'), defaultValue: 'active' }
+  }, {
+    tableName: 'student_badges',
+    indexes: [
+      { fields: ['badge_code'], unique: true },
+      { fields: ['verification_hash'], unique: true },
+      { fields: ['student_id', 'badge_id', 'course_id'] }
     ]
   });
 
@@ -119,6 +164,8 @@ module.exports = (sequelize) => {
     Grade,
     GradeHistory,
     Certificate,
+    Badge,
+    StudentBadge,
     AttendanceSession,
     AttendanceRecord
   };

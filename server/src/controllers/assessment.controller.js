@@ -202,7 +202,7 @@ async function createAssignment(req, res, next) {
       data: { assignment }
     });
   } catch (err) {
-    await t.rollback();
+    if (t && !t.finished) await t.rollback();
     return next(err);
   }
 }
@@ -253,9 +253,11 @@ async function listSubmissions(req, res, next) {
     const submissions = await Submission.findAll({
       where,
       include: [
-        { model: Assignment, as: 'assignment', include: [
-          { model: GradingRubric, as: 'rubric', include: [{ model: RubricCriterion, as: 'criteria' }] }
-        ]},
+        {
+          model: Assignment, as: 'assignment', include: [
+            { model: GradingRubric, as: 'rubric', include: [{ model: RubricCriterion, as: 'criteria' }] }
+          ]
+        },
         { model: User, as: 'student', attributes: ['id', 'firstName', 'lastName', 'email', 'studentNumber'] },
         ...(isTA ? [] : [{ model: SubmissionVersion, as: 'versions' }])
       ],
@@ -395,7 +397,7 @@ async function submitAssignmentWork(req, res, next) {
       data: { submission }
     });
   } catch (err) {
-    await t.rollback();
+    if (t && !t.finished) await t.rollback();
     return next(err);
   }
 }
@@ -765,7 +767,7 @@ async function reviewOrGradeSubmission(req, res, next) {
       data: { submission }
     });
   } catch (err) {
-    await t.rollback();
+    if (t && !t.finished) await t.rollback();
     return next(err);
   }
 }
@@ -970,7 +972,7 @@ async function createQuestion(req, res, next) {
       data: { question: fullQuestion }
     });
   } catch (err) {
-    await t.rollback();
+    if (t && !t.finished) await t.rollback();
     return next(err);
   }
 }
@@ -981,21 +983,22 @@ async function createQuestion(req, res, next) {
 
 async function listAssessments(req, res, next) {
   try {
-    const { classId, courseId, moduleId } = req.query;
+    const { classId, courseId, moduleId, lessonId } = req.query;
     const where = {};
     if (classId) where.classId = Number(classId);
     if (courseId) where.courseId = Number(courseId);
     if (moduleId) where.moduleId = Number(moduleId);
+    if (lessonId) where.lessonId = Number(lessonId);
 
     if (req.user.primaryRole === 'student') {
       where.publicationStatus = ['published', 'closed'];
-      if (!classId) {
+      if (!classId && !courseId && !lessonId) {
         const memberships = await ClassMembership.findAll({
           where: { studentId: req.user.id, status: ['enrolled', 'completed'] }
         });
         where.classId = memberships.map((m) => m.classId);
       }
-    } else if (req.user.primaryRole === 'instructor' && !classId) {
+    } else if (req.user.primaryRole === 'instructor' && !classId && !courseId && !lessonId) {
       const assigned = await InstructorAssignment.findAll({ where: { instructorId: req.user.id } });
       where.classId = assigned.map((a) => a.classId);
     }
@@ -1003,14 +1006,18 @@ async function listAssessments(req, res, next) {
     const assessments = await Assessment.findAll({
       where,
       include: [
-        { model: AssessmentQuestion, as: 'assessmentQuestions' },
+        {
+          model: AssessmentQuestion,
+          as: 'assessmentQuestions',
+          include: [{ model: Question, as: 'question', include: [{ model: QuestionOption, as: 'options' }] }]
+        },
         {
           model: AssessmentAttempt,
           as: 'attempts',
           ...(req.user.primaryRole === 'student' ? { where: { studentId: req.user.id }, required: false } : {})
         }
       ],
-      order: [['closeDate', 'ASC']]
+      order: [['id', 'DESC']]
     });
 
     return res.status(200).json({ success: true, data: { assessments } });
@@ -1023,10 +1030,20 @@ async function createAssessment(req, res, next) {
   const t = await sequelize.transaction();
   try {
     const payload = assessmentSchema.parse(req.body);
-    const { classSection } = await verifyClassAccess(req.user, payload.classId, { allowAdmin: true, allowInstructor: true });
-    if (Number(classSection.courseOffering.courseId) !== payload.courseId) {
-      throw new AppError('The selected class does not belong to this course.', 400);
+
+    if (payload.classId) {
+      const { classSection } = await verifyClassAccess(req.user, payload.classId, { allowAdmin: true, allowInstructor: true });
+      if (Number(classSection.courseOffering.courseId) !== payload.courseId) {
+        throw new AppError('The selected class does not belong to this course.', 400);
+      }
+    } else {
+      if (req.user.primaryRole === 'instructor') {
+        const { Course } = require('../models');
+        const course = await Course.findByPk(payload.courseId);
+        if (!course) throw new AppError('Course not found.', 404);
+      }
     }
+
     if (payload.moduleId) {
       const module = await Module.findOne({
         where: { id: payload.moduleId, courseId: payload.courseId },
@@ -1035,7 +1052,57 @@ async function createAssessment(req, res, next) {
       if (!module) throw new AppError('The selected module does not belong to this course.', 400);
     }
 
-    const questionIds = [...new Set(payload.questionIds)];
+    if (payload.lessonId) {
+      const { Lesson } = require('../models');
+      const lesson = await Lesson.findOne({
+        where: { id: payload.lessonId, courseId: payload.courseId },
+        transaction: t
+      });
+      if (!lesson) throw new AppError('The selected topic does not belong to this course.', 400);
+    }
+
+    // Support creating questions inline from req.body.questions:
+    let questionIds = [...new Set(payload.questionIds || [])];
+    const rawQuestions = Array.isArray(req.body.questions) ? req.body.questions : [];
+
+    if (rawQuestions.length > 0) {
+      let bank = await QuestionBank.findOne({ where: { courseId: payload.courseId }, transaction: t });
+      if (!bank) {
+        bank = await QuestionBank.create({
+          courseId: payload.courseId,
+          title: `${payload.title} Bank`,
+          topic: payload.title,
+          createdBy: req.user.id
+        }, { transaction: t });
+      }
+
+      for (const qData of rawQuestions) {
+        const createdQ = await Question.create({
+          questionBankId: bank.id,
+          courseId: payload.courseId,
+          topic: qData.topic || payload.title,
+          questionType: qData.questionType || 'multiple_choice',
+          difficulty: qData.difficulty || 'Medium',
+          prompt: qData.prompt || 'Question Prompt',
+          points: Number(qData.points || 10),
+          correctAnswerText: qData.correctAnswerText || null,
+          explanation: qData.explanation || null
+        }, { transaction: t });
+
+        if (Array.isArray(qData.options) && qData.options.length > 0) {
+          for (let oi = 0; oi < qData.options.length; oi += 1) {
+            await QuestionOption.create({
+              questionId: createdQ.id,
+              optionText: qData.options[oi].optionText || String(qData.options[oi]),
+              isCorrect: Boolean(qData.options[oi].isCorrect),
+              orderIndex: oi + 1
+            }, { transaction: t });
+          }
+        }
+        questionIds.push(createdQ.id);
+      }
+    }
+
     if (payload.publicationStatus === 'published' && questionIds.length === 0) {
       throw new AppError('Add at least one question before publishing this assessment.', 400);
     }
@@ -1051,8 +1118,10 @@ async function createAssessment(req, res, next) {
       }
     }
 
+    const defaultClose = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
     const assessment = await Assessment.create({
       ...payload,
+      closeDate: payload.closeDate ? new Date(payload.closeDate) : defaultClose,
       createdBy: req.user.id
     }, { transaction: t });
 
@@ -1069,13 +1138,23 @@ async function createAssessment(req, res, next) {
 
     await t.commit();
 
+    const fullAssessment = await Assessment.findByPk(assessment.id, {
+      include: [
+        {
+          model: AssessmentQuestion,
+          as: 'assessmentQuestions',
+          include: [{ model: Question, as: 'question', include: [{ model: QuestionOption, as: 'options' }] }]
+        }
+      ]
+    });
+
     return res.status(201).json({
       success: true,
-      message: 'Assessment created.',
-      data: { assessment }
+      message: 'Assessment created successfully.',
+      data: { assessment: fullAssessment }
     });
   } catch (err) {
-    await t.rollback();
+    if (t && !t.finished) await t.rollback();
     return next(err);
   }
 }
@@ -1104,7 +1183,31 @@ async function startOrResumeAttempt(req, res, next) {
     });
 
     if (!assessment) throw new AppError('Assessment not found.', 404);
-    await verifyClassAccess(req.user, assessment.classId, { allowStudent: true, allowInstructor: true, allowAdmin: true });
+
+    let assignedClassId = assessment.classId;
+    if (assessment.classId) {
+      await verifyClassAccess(req.user, assessment.classId, { allowStudent: true, allowInstructor: true, allowAdmin: true });
+    } else {
+      if (req.user.primaryRole === 'student') {
+        const { ClassSection, CourseOffering } = require('../models');
+        const membership = await ClassMembership.findOne({
+          where: { studentId: req.user.id, status: ['enrolled', 'completed'] },
+          include: [{
+            model: ClassSection,
+            as: 'classSection',
+            include: [{
+              model: CourseOffering,
+              as: 'courseOffering',
+              where: { courseId: assessment.courseId },
+              required: true
+            }]
+          }]
+        });
+        if (membership) {
+          assignedClassId = membership.classId;
+        }
+      }
+    }
 
     const now = new Date();
     if (assessment.closeDate && now > new Date(assessment.closeDate) && !assessment.allowLateAttempts) {
@@ -1133,7 +1236,7 @@ async function startOrResumeAttempt(req, res, next) {
       const expiresAt = new Date(now.getTime() + (assessment.timeLimitMinutes || 45) * 60000);
       attempt = await AssessmentAttempt.create({
         assessmentId: assessment.id,
-        classId: assessment.classId,
+        classId: assignedClassId,
         studentId: req.user.id,
         attemptNumber: priorAttemptsCount + 1,
         status: 'in_progress',
@@ -1394,7 +1497,7 @@ async function submitAttempt(req, res, next) {
       gradedAt: requiresManual ? null : new Date()
     }, { transaction: t });
 
-    if (isPublished) {
+    if (isPublished && attempt.classId && attempt.assessment.gradeCategoryId) {
       await upsertGradeWithHistory({
         classId: attempt.classId,
         gradeCategoryId: attempt.assessment.gradeCategoryId,
@@ -1414,7 +1517,26 @@ async function submitAttempt(req, res, next) {
 
     await t.commit();
 
-    const courseProgress = await recalculateStudentCourseProgress(attempt.classId, req.user.id);
+    let targetClassId = attempt.classId;
+    if (!targetClassId) {
+      const { ClassMembership: CM, ClassSection: CS, CourseOffering: CO } = require('../models');
+      const membership = await CM.findOne({
+        where: { studentId: req.user.id, status: ['enrolled', 'completed'] },
+        include: [{
+          model: CS,
+          as: 'classSection',
+          include: [{
+            model: CO,
+            as: 'courseOffering',
+            where: { courseId: attempt.assessment.courseId },
+            required: true
+          }]
+        }]
+      });
+      if (membership) targetClassId = membership.classId;
+    }
+
+    const courseProgress = targetClassId ? await recalculateStudentCourseProgress(targetClassId, req.user.id) : null;
     const percentage = assessmentMax > 0
       ? Number(((normalizedAutoScore / assessmentMax) * 100).toFixed(2))
       : 0;
@@ -1436,7 +1558,7 @@ async function submitAttempt(req, res, next) {
       }
     });
   } catch (err) {
-    await t.rollback();
+    if (t && !t.finished) await t.rollback();
     return next(err);
   }
 }
@@ -1506,7 +1628,7 @@ async function manualGradeAttempt(req, res, next) {
       data: { attempt }
     });
   } catch (err) {
-    await t.rollback();
+    if (t && !t.finished) await t.rollback();
     return next(err);
   }
 }
@@ -1533,8 +1655,10 @@ async function updateAssignment(req, res, next) {
     await assignment.update(updates, { transaction: t });
     await t.commit();
 
-    await recordAudit({ req, action: 'ASSIGNMENT_UPDATED', category: 'assessment',
-      entityType: 'Assignment', entityId: assignment.id, metadata: updates });
+    await recordAudit({
+      req, action: 'ASSIGNMENT_UPDATED', category: 'assessment',
+      entityType: 'Assignment', entityId: assignment.id, metadata: updates
+    });
 
     return res.status(200).json({ success: true, message: 'Assignment updated.', data: { assignment } });
   } catch (err) {
@@ -1551,8 +1675,10 @@ async function deleteAssignment(req, res, next) {
 
     await assignment.destroy();
 
-    await recordAudit({ req, action: 'ASSIGNMENT_DELETED', category: 'assessment',
-      entityType: 'Assignment', entityId: Number(req.params.id) });
+    await recordAudit({
+      req, action: 'ASSIGNMENT_DELETED', category: 'assessment',
+      entityType: 'Assignment', entityId: Number(req.params.id)
+    });
 
     return res.status(200).json({ success: true, message: 'Assignment deleted.' });
   } catch (err) {
@@ -1673,8 +1799,10 @@ async function deleteAssessment(req, res, next) {
 
     await assessment.destroy();
 
-    await recordAudit({ req, action: 'ASSESSMENT_DELETED', category: 'assessment',
-      entityType: 'Assessment', entityId: Number(req.params.id) });
+    await recordAudit({
+      req, action: 'ASSESSMENT_DELETED', category: 'assessment',
+      entityType: 'Assessment', entityId: Number(req.params.id)
+    });
 
     return res.status(200).json({ success: true, message: 'Assessment deleted.' });
   } catch (err) {
@@ -1739,9 +1867,11 @@ async function extendAssignmentForStudent(req, res, next) {
 
     await assignment.update({ extensionOverrides: JSON.stringify(filtered) });
 
-    await recordAudit({ req, action: 'ASSIGNMENT_EXTENSION_GRANTED', category: 'assessment',
+    await recordAudit({
+      req, action: 'ASSIGNMENT_EXTENSION_GRANTED', category: 'assessment',
       entityType: 'Assignment', entityId: assignmentId,
-      metadata: { studentId, newDueDate } });
+      metadata: { studentId, newDueDate }
+    });
 
     return res.status(200).json({
       success: true,
@@ -1840,9 +1970,9 @@ async function getEscalationHistory(req, res, next) {
         id: log.id,
         action: log.action,
         actionLabel: log.action === 'SUBMISSION_FLAGGED_BY_TA' ? 'Flagged for Instructor Review'
-                    : log.action === 'SUBMISSION_TA_REVIEWED' ? 'TA Preliminary Review'
-                    : log.action === 'SUBMISSION_GRADED' ? 'Officially Graded by Instructor'
-                    : log.action,
+          : log.action === 'SUBMISSION_TA_REVIEWED' ? 'TA Preliminary Review'
+            : log.action === 'SUBMISSION_GRADED' ? 'Officially Graded by Instructor'
+              : log.action,
         actorName: log.actor
           ? `${log.actor.firstName} ${log.actor.lastName}`
           : (meta.flaggedByName || meta.actorEmail || 'Unknown'),
@@ -1879,6 +2009,85 @@ async function getEscalationHistory(req, res, next) {
   }
 }
 
+async function getAssessmentPerformance(req, res, next) {
+  try {
+    const assessmentId = Number(req.params.id);
+    const assessment = await Assessment.findByPk(assessmentId, {
+      include: [
+        {
+          model: AssessmentAttempt,
+          as: 'attempts',
+          include: [
+            {
+              model: User,
+              as: 'student',
+              attributes: ['id', 'firstName', 'lastName', 'email', 'studentNumber']
+            }
+          ]
+        }
+      ]
+    });
+    if (!assessment) throw new AppError('Assessment not found.', 404);
+
+    const studentMap = {};
+    for (const att of assessment.attempts || []) {
+      if (!att.student) continue;
+      const sId = att.studentId;
+      if (!studentMap[sId]) {
+        studentMap[sId] = {
+          studentId: sId,
+          studentNumber: att.student.studentNumber || `RAY-${String(sId).padStart(6, '0')}`,
+          studentName: `${att.student.firstName} ${att.student.lastName}`,
+          studentEmail: att.student.email,
+          attemptsCount: 0,
+          bestScore: 0,
+          passingScore: Number(assessment.passingScore || 75),
+          isPassed: false,
+          lastAttemptAt: null,
+          attempts: []
+        };
+      }
+      studentMap[sId].attemptsCount += 1;
+      const score = Number(att.totalScore || att.autoScore || 0);
+      if (score > studentMap[sId].bestScore) {
+        studentMap[sId].bestScore = score;
+      }
+      if (score >= Number(assessment.passingScore || 75)) {
+        studentMap[sId].isPassed = true;
+      }
+      if (!studentMap[sId].lastAttemptAt || new Date(att.submittedAt || att.createdAt) > new Date(studentMap[sId].lastAttemptAt)) {
+        studentMap[sId].lastAttemptAt = att.submittedAt || att.createdAt;
+      }
+      studentMap[sId].attempts.push({
+        id: att.id,
+        attemptNumber: att.attemptNumber,
+        status: att.status,
+        score,
+        submittedAt: att.submittedAt
+      });
+    }
+
+    const students = Object.values(studentMap);
+    return res.status(200).json({
+      success: true,
+      data: {
+        assessment: {
+          id: assessment.id,
+          title: assessment.title,
+          passingScore: assessment.passingScore,
+          maxScore: assessment.maxScore,
+          maxAttempts: assessment.maxAttempts
+        },
+        performance: students,
+        totalStudents: students.length,
+        passedStudents: students.filter((s) => s.isPassed).length
+      }
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   listAssignments,
   getAssignmentById,
@@ -1900,6 +2109,7 @@ module.exports = {
   createAssessment,
   updateAssessment,
   deleteAssessment,
+  getAssessmentPerformance,
   startOrResumeAttempt,
   saveAttemptAnswers,
   submitAttempt,

@@ -15,6 +15,7 @@ import {
   Layers,
   ClipboardCheck,
   Award,
+  Medal,
   Megaphone,
   MessageSquare,
   Bell,
@@ -38,6 +39,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { lmsApi } from '../services/api';
+import { MinsuSeal } from '../components/ui/MinsuBrand';
 
 const NAVIGATION_BY_ROLE = {
   super_admin: [
@@ -131,7 +133,8 @@ const NAVIGATION_BY_ROLE = {
         { to: '/student/discussions', label: 'Class Discussions' }
       ]
     },
-    { to: '/student/certificates', label: 'Certificates', icon: ShieldCheck },
+    { to: '/student/certificates', label: 'My Certificates', icon: ShieldCheck },
+    { to: '/student/badges', label: 'My Badges', icon: Medal },
     { to: '/student/calendar/deadlines', label: 'Calendar & Deadlines', icon: Calendar },
     { to: '/student/help/user-guide', label: 'Help & Support', icon: HelpCircle }
   ]
@@ -303,8 +306,8 @@ export default function AppLayout() {
                 hasActiveChild
                   ? isCollapsed
                     ? 'bg-blue-500/15 text-blue-200 ring-1 ring-inset ring-blue-400/25 before:absolute before:left-1 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-blue-400'
-                    : 'bg-slate-800 text-blue-300 font-semibold before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-blue-400'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    : 'bg-[#159957] text-white font-bold shadow-xs before:absolute before:inset-y-2 before:left-0 before:w-1.5 before:rounded-r-full before:bg-[#E5B52B]'
+                  : 'text-emerald-100/90 hover:bg-white/10 hover:text-white'
               }`}
             >
               {isCollapsed ? (
@@ -336,8 +339,8 @@ export default function AppLayout() {
                     className={({ isActive }) =>
                       `block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         isActive
-                          ? 'bg-blue-600/20 text-blue-300 font-bold border border-blue-500/30'
-                          : 'text-slate-400 hover:bg-slate-800/70 hover:text-white'
+                          ? 'bg-[#087A45] text-white font-bold border border-emerald-400/30'
+                          : 'text-emerald-200/75 hover:bg-white/10 hover:text-white'
                       }`
                     }
                   >
@@ -370,8 +373,8 @@ export default function AppLayout() {
               isActive
                 ? isCollapsed
                   ? 'bg-blue-500/15 text-blue-200 ring-1 ring-inset ring-blue-400/25 before:absolute before:left-1 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-blue-400'
-                  : 'bg-slate-800 text-blue-300 shadow-xs before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-blue-400'
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  : 'bg-[#159957] text-white font-bold shadow-xs before:absolute before:inset-y-2 before:left-0 before:w-1.5 before:rounded-r-full before:bg-[#E5B52B]'
+                : 'text-emerald-100/90 hover:bg-white/10 hover:text-white'
             }`
           }
         >
@@ -382,33 +385,33 @@ export default function AppLayout() {
     });
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
+    <div className="flex min-h-screen bg-[#F4F7F5] text-[#172B24]">
       {/* Desktop Sidebar */}
       <aside
-        className={`fixed inset-y-0 z-30 hidden h-screen h-dvh flex-col overflow-x-hidden border-r border-slate-800 bg-[#101B32] text-slate-100 transition-[width] duration-200 ease-in-out lg:flex ${
+        className={`fixed inset-y-0 z-30 hidden h-screen h-dvh flex-col overflow-x-hidden border-r border-[#003824] bg-[#004D32] text-slate-100 transition-[width] duration-200 ease-in-out lg:flex ${
           sidebarCollapsed ? 'w-20' : 'w-64'
         }`}
       >
         <div
-          className={`flex shrink-0 items-center border-b border-slate-800 ${
-            sidebarCollapsed ? 'h-[76px] justify-center px-2' : 'h-16 gap-3 px-5'
+          className={`flex shrink-0 items-center border-b border-[#003824] ${
+            sidebarCollapsed ? 'h-[76px] justify-center px-2' : 'h-20 gap-3 px-4'
           }`}
         >
-          <div
-            className={`flex shrink-0 items-center justify-center rounded-xl bg-blue-600 font-bold text-white shadow-inner ${
-              sidebarCollapsed ? 'h-14 w-14' : 'h-9 w-9'
-            }`}
-          >
-            <GraduationCap className={`${sidebarCollapsed ? 'h-7 w-7' : 'h-6 w-6'}`} />
-          </div>
-          {!sidebarCollapsed && <div>
-            <span className="font-bold text-base tracking-tight text-white block leading-none">
-              Aetheria NetAcad
-            </span>
-            <span className="text-[11px] text-blue-400 font-medium">
-              Institutional Learning Hub
-            </span>
-          </div>}
+          <MinsuSeal size={sidebarCollapsed ? 42 : 38} />
+          {!sidebarCollapsed && (
+            <div className="min-w-0">
+              <span className="font-extrabold text-[14px] tracking-tight text-white block leading-snug">
+                Mindoro State University
+              </span>
+              <span className="text-[11px] text-emerald-300 font-semibold block leading-tight truncate">
+                MinSU E-Learn &amp; NetAcad
+              </span>
+              <span className="text-[10px] text-[#E5B52B] font-medium italic block leading-tight">
+                Learn · Connect · Excel
+              </span>
+              <span className="sr-only">Aetheria NetAcad</span>
+            </div>
+          )}
         </div>
 
         {/* Role Indicator */}
@@ -418,18 +421,18 @@ export default function AppLayout() {
             sidebarCollapsed,
             false
           )}
-          className={`border-b border-slate-800/80 bg-slate-950/40 ${
-            sidebarCollapsed ? 'flex h-[60px] shrink-0 items-center justify-center' : 'shrink-0 px-4 py-3'
+          className={`border-b border-[#003824] bg-[#003824]/60 ${
+            sidebarCollapsed ? 'flex h-[60px] shrink-0 items-center justify-center' : 'shrink-0 px-4 py-2.5'
           }`}
         >
           {sidebarCollapsed ? (
-            <UserCircle className="h-[22px] w-[22px] text-slate-400" aria-hidden="true" />
+            <UserCircle className="h-[22px] w-[22px] text-emerald-300" aria-hidden="true" />
           ) : (
             <>
-              <p className="text-[13px] uppercase tracking-wider text-slate-400 font-semibold">
-                Active Role Scope
+              <p className="text-[11px] uppercase tracking-wider text-emerald-200/80 font-bold">
+                Active Role
               </p>
-              <p className="mt-0.5 text-[13px] font-bold text-blue-400">
+              <p className="mt-0.5 text-xs font-extrabold text-[#E5B52B]">
                 {ROLE_LABELS[user?.primaryRole] || 'Learner'}
               </p>
             </>
@@ -450,7 +453,7 @@ export default function AppLayout() {
 
         {/* Bottom Profile & Logout */}
         <div
-          className={`mt-auto shrink-0 border-t border-slate-800 bg-slate-950/50 ${
+          className={`mt-auto shrink-0 border-t border-[#003824] bg-[#003824]/60 ${
             sidebarCollapsed
               ? 'flex w-full flex-col items-center gap-2 p-2'
               : 'space-y-2 p-3'
@@ -464,21 +467,21 @@ export default function AppLayout() {
               false
             )}
             aria-label={sidebarCollapsed ? 'View profile' : undefined}
-            className={`flex items-center rounded-lg hover:bg-slate-800 transition-colors ${
+            className={`flex items-center rounded-xl hover:bg-white/10 transition-colors ${
               sidebarCollapsed
                 ? 'flex h-[60px] w-[60px] shrink-0 items-center justify-center p-0'
                 : 'gap-3 px-3 py-2'
             }`}
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-white overflow-hidden">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white overflow-hidden shadow-xs border border-emerald-400/40">
               {user?.avatarUrl
                 ? <img src={user.avatarUrl} alt={user.fullName} className="h-10 w-10 rounded-full object-cover" />
                 : (user?.fullName || 'Student').split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()
               }
             </span>
             {!sidebarCollapsed && <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">{user?.fullName}</p>
-              <p className="truncate text-xs text-slate-300">{user?.email}</p>
+              <p className="truncate text-sm font-bold text-white">{user?.fullName}</p>
+              <p className="truncate text-xs text-emerald-200/80">{user?.email}</p>
             </div>}
           </Link>
           <button
@@ -486,7 +489,7 @@ export default function AppLayout() {
             onClick={handleLogout}
             {...getCollapsedTooltipProps('Sign out', sidebarCollapsed, false)}
             aria-label={sidebarCollapsed ? 'Sign out' : undefined}
-            className={`flex items-center justify-center rounded-xl border border-slate-800 text-xs font-semibold text-slate-300 transition-colors hover:bg-red-600/20 hover:text-white ${
+            className={`flex items-center justify-center rounded-xl border border-[#003824] text-xs font-bold text-emerald-100 transition-colors hover:bg-rose-600/25 hover:text-white ${
               sidebarCollapsed ? 'h-12 w-[60px] shrink-0 p-0' : 'w-full gap-2 px-3 py-2'
             }`}
           >
@@ -498,7 +501,7 @@ export default function AppLayout() {
       {collapsedTooltip && sidebarCollapsed && (
         <div
           role="tooltip"
-          className="pointer-events-none fixed left-[88px] z-[60] -translate-y-1/2 whitespace-nowrap rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-lg"
+          className="pointer-events-none fixed left-[88px] z-[60] -translate-y-1/2 whitespace-nowrap rounded-md border border-emerald-800 bg-[#003824] px-3 py-2 text-xs font-semibold text-white shadow-lg"
           style={{ top: collapsedTooltip.top }}
         >
           {collapsedTooltip.label}
@@ -512,14 +515,21 @@ export default function AppLayout() {
             className="fixed inset-0 bg-slate-900/60"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <aside className="relative w-64 max-w-xs bg-slate-900 text-white flex flex-col h-full z-10">
-            <div className="flex items-center justify-between px-4 h-16 border-b border-slate-800">
-              <span className="font-bold text-base">Aetheria NetAcad</span>
+          <aside className="relative w-64 max-w-xs bg-[#004D32] text-white flex flex-col h-full z-10 border-r border-[#003824]">
+            <div className="flex items-center justify-between px-4 h-20 border-b border-[#003824]">
+              <div className="flex items-center gap-2.5">
+                <MinsuSeal size={32} />
+                <div className="leading-tight">
+                  <span className="font-extrabold text-sm block">Mindoro State Univ</span>
+                  <span className="text-[10px] text-emerald-300 block font-semibold">MinSU E-Learn Academy</span>
+                  <span className="sr-only">Aetheria NetAcad</span>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
                 aria-label="Close navigation menu"
-                className="p-1.5 text-slate-400 hover:text-white"
+                className="p-1.5 text-emerald-200 hover:text-white rounded-lg hover:bg-white/10"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -534,7 +544,7 @@ export default function AppLayout() {
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col min-w-0 transition-[padding] duration-200 ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         {/* Top Header */}
-        <header className="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur-xs border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur-xs border-b border-[#E2E8F0] px-4 sm:px-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -558,7 +568,8 @@ export default function AppLayout() {
 
             {/* Breadcrumbs */}
             <nav aria-label="Breadcrumb" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-slate-600">
-              <span className="text-slate-900 font-semibold">Aetheria LMS</span>
+              <span className="text-[#004D32] font-extrabold">MinSU LMS</span>
+              <span className="sr-only">Aetheria LMS</span>
               {pathSegments.map((seg, idx) => (
                 <React.Fragment key={idx}>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
@@ -580,7 +591,7 @@ export default function AppLayout() {
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[1rem] h-4 px-0.5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+                  <span className="absolute top-1 right-1 min-w-[1rem] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-xs">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
@@ -596,7 +607,7 @@ export default function AppLayout() {
                         Notifications
                       </span>
                       {unreadCount > 0 && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-bold">
+                        <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold">
                           {unreadCount}
                         </span>
                       )}
@@ -718,16 +729,19 @@ export default function AppLayout() {
                 onClick={() => setProfileOpen((open) => !open)}
                 aria-expanded={profileOpen}
                 aria-label="Open profile menu"
-                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700"
+                className="flex items-center gap-2.5 pl-2 pr-3 py-1 rounded-full border border-slate-200 hover:bg-slate-50 transition-colors bg-white shadow-2xs"
               >
-                <span className="w-7 h-7 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center overflow-hidden shrink-0">
+                <span className="w-7 h-7 rounded-full bg-gradient-to-br from-[#004D32] to-[#087A45] text-white text-[10px] font-bold flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
                   {user?.avatarUrl
                     ? <img src={user.avatarUrl} alt={user.fullName} className="w-7 h-7 rounded-full object-cover" />
-                    : (user?.fullName || 'Student').split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()
+                    : (user?.fullName || 'User').split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()
                   }
                 </span>
-                <span className="hidden text-sm font-semibold md:inline">{user?.fullName}</span>
-                <ChevronDown className="w-3.5 h-3.5" />
+                <div className="hidden md:flex flex-col text-left leading-tight">
+                  <span className="text-xs font-bold text-slate-800">{user?.fullName || 'User'}</span>
+                  <span className="text-[10px] text-slate-500 font-medium">{ROLE_LABELS[user?.primaryRole] || 'Learner'}</span>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
               {profileOpen && (
                 <div className="absolute right-0 mt-2 w-52 rounded-lg border border-slate-200 bg-white p-2 shadow-xl z-50">

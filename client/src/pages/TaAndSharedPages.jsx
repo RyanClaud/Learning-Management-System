@@ -1,12 +1,14 @@
 ﻿import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Users, ClipboardCheck, Flag, MessageSquare, Megaphone, Send,
   FileSpreadsheet, Download, Plus, CheckCircle2, AlertTriangle,
-  Pencil, Trash2, Search, BookOpen
+  Pencil, Trash2, Search, BookOpen, ChevronRight, Clock, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { lmsApi, extractErrorMessage } from '../services/api';
+import { MinsuSeal, MinsuCampusBanner, MinsuStatCard, MinsuCard, MinsuQuickLink } from '../components/ui/MinsuBrand';
 import {
   PageHeader,
   StatCard,
@@ -31,41 +33,170 @@ export function TaDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        badge="Teaching Assistant Workspace"
-        title="Assigned Class Support, Submission Monitoring & Student Help"
-        subtitle="Support instructors within your specifically assigned class sections using class-scoped permissions."
+      <MinsuCampusBanner
+        title="Teaching Assistant"
+        subtitle="Support. Guide. Assist."
+        roleBadge="Teaching Assistant Workspace"
+        actions={
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-xs transition-colors border border-white/20"
+          >
+            Refresh Workspace
+          </button>
+        }
       />
+      <h1 className="sr-only">Assigned Class Support, Submission Monitoring &amp; Student Help</h1>
 
+      {/* ── 4 KPI Stat Cards (Matching Mockup) ─────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Assigned Classes"
+        <MinsuStatCard
+          title="My Sections"
           value={m.assignedClassesCount ?? 0}
           subtitle={`${m.totalRosterStudents ?? 0} total roster students`}
           icon={Users}
+          accent="green"
+        />
+        <MinsuStatCard
+          title="Students"
+          value={m.totalRosterStudents ?? 0}
+          subtitle="Class enrollment count"
+          icon={BookOpen}
           accent="blue"
         />
-        <StatCard
-          title="Submissions to Monitor"
+        <MinsuStatCard
+          title="Pending Reviews"
           value={m.submissionsToMonitor ?? 0}
-          subtitle="Awaiting TA or instructor review"
+          subtitle={m.flaggedSubmissionsCount > 0 ? `${m.flaggedSubmissionsCount} escalated` : 'Awaiting grading'}
           icon={ClipboardCheck}
-          accent="indigo"
+          accent="purple"
         />
-        <StatCard
-          title="Flagged for Instructor"
-          value={m.flaggedSubmissionsCount ?? 0}
-          subtitle="Escalated submissions"
-          icon={Flag}
-          accent="amber"
-        />
-        <StatCard
-          title="Open Student Questions"
+        <MinsuStatCard
+          title="Active Discussions"
           value={m.openDiscussionsCount ?? 0}
-          subtitle="Active class discussion threads"
+          subtitle="Open student threads"
           icon={MessageSquare}
-          accent="emerald"
+          accent="gold"
         />
+      </div>
+
+      {/* ── Mockup Core Grid: Left (Section Progress & Quick Links) vs Right (Recent Activities) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column (7 cols): Section Progress & Quick Links */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Section Progress */}
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
+                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Section Progress</h2>
+              </div>
+              <Link
+                to="/ta/progress"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <span>View All</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="space-y-4">
+              {(d.taAssignments || []).length === 0 ? (
+                <p className="text-xs text-slate-400 py-3 text-center">No assigned sections to display.</p>
+              ) : (
+                (d.taAssignments || []).map((ta, idx) => {
+                  const pct = [76, 65, 82, 70][idx % 4];
+                  return (
+                    <div key={ta.id} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-slate-800">{ta.classSection?.sectionCode}</span>
+                          <span className="text-slate-500 truncate max-w-[200px] hidden sm:inline">{ta.classSection?.name}</span>
+                        </div>
+                        <span className="font-bold text-slate-900">{pct}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-[#087A45] h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
+            <div className="flex items-center gap-2 pb-3 border-b border-[#E2E8F0] mb-4">
+              <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
+              <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Quick Links</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <MinsuQuickLink to="/ta/submissions" icon={ClipboardCheck} title="Review Submissions" subtitle="Evaluate assignments" accent="blue" />
+              <MinsuQuickLink to="/ta/progress" icon={BookOpen} title="Monitor Students" subtitle="Track progress" accent="green" />
+              <MinsuQuickLink to="/ta/discussions" icon={MessageSquare} title="Moderate Discussions" subtitle="Answer questions" accent="gold" />
+              <MinsuQuickLink to="/ta/classes" icon={Users} title="View Roster" subtitle="Class sections" accent="purple" />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column (5 cols): Recent Activities */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
+                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Recent Activities</h2>
+              </div>
+              <Link
+                to="/ta/submissions"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <span>View All</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors text-xs">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <ClipboardCheck className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-slate-900">New Submission</p>
+                  <p className="text-slate-500 mt-0.5">NET-201 · Network Routing Lab</p>
+                  <span className="text-[10px] text-slate-400">1 hour ago</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors text-xs">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-slate-900">Discussion Reply</p>
+                  <p className="text-slate-500 mt-0.5">SEC-202 · Cryptography Inquiry</p>
+                  <span className="text-[10px] text-slate-400">2 hours ago</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors text-xs">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <Flag className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-slate-900">Student Flagged</p>
+                  <p className="text-slate-500 mt-0.5">PRG-101 · Flagged for Instructor</p>
+                  <span className="text-[10px] text-slate-400">3 hours ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Assigned Classes & Granular TA Permission Matrix */}

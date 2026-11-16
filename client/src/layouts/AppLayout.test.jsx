@@ -66,7 +66,8 @@ describe('AppLayout sidebar', () => {
       screen.getByRole('button', { name: 'Coursework' }),
       screen.getByRole('link', { name: 'Grades & Progress' }),
       screen.getByRole('button', { name: 'Communication' }),
-      screen.getByRole('link', { name: 'Certificates' }),
+      screen.getByRole('link', { name: 'My Certificates' }),
+      screen.getByRole('link', { name: 'My Badges' }),
       screen.getByRole('link', { name: 'Calendar & Deadlines' }),
       screen.getByRole('link', { name: 'Help & Support' })
     ];

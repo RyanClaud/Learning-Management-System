@@ -108,44 +108,117 @@ export function StatusBadge({ status }) {
   );
 }
 
-export function StatCard({ title, value, subtitle, icon: Icon, accent = 'blue' }) {
+export function StatCard({ title, value, subtitle, icon: Icon, accent = 'green', linkTo, linkLabel = 'View All' }) {
   const accentMap = {
+    green: 'bg-emerald-50 text-[#087A45] border-emerald-100',
+    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    gold: 'bg-amber-50 text-[#B38612] border-amber-200',
     blue: 'bg-blue-50 text-blue-600 border-blue-100',
-    emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    amber: 'bg-amber-50 text-amber-600 border-amber-100',
     indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100',
-    rose: 'bg-rose-50 text-rose-600 border-rose-100'
+    amber: 'bg-amber-50 text-amber-600 border-amber-100',
+    rose: 'bg-rose-50 text-rose-600 border-rose-100',
+    purple: 'bg-purple-50 text-purple-700 border-purple-100'
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-sm hover:shadow transition-shadow">
+    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs hover:shadow-sm transition-all flex flex-col justify-between">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1.5">{value}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold text-[#172B24] tracking-tight mt-1.5">{value}</p>
           {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
         </div>
         {Icon && (
-          <div className={`p-2.5 rounded-lg border ${accentMap[accent] || accentMap.blue}`}>
+          <div className={`p-3 rounded-2xl border shrink-0 ${accentMap[accent] || accentMap.green}`}>
             <Icon className="w-5 h-5" />
           </div>
         )}
       </div>
+      {linkTo && (
+        <div className="mt-3 pt-3 border-t border-slate-100 flex justify-end">
+          <a href={linkTo} className="text-xs font-bold text-[#087A45] hover:text-[#004D32] hover:underline inline-flex items-center gap-1">
+            {linkLabel} →
+          </a>
+        </div>
+      )}
     </div>
   );
 }
+
+export function PrimaryButton({ children, onClick, type = 'button', disabled = false, className = '', icon: Icon }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#087A45] hover:bg-[#004D32] text-white shadow-xs disabled:opacity-50 transition-colors ${className}`}
+    >
+      {Icon && <Icon className="w-4 h-4" />}
+      {children}
+    </button>
+  );
+}
+
+export function SecondaryButton({ children, onClick, type = 'button', disabled = false, className = '', icon: Icon }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 disabled:opacity-50 transition-colors ${className}`}
+    >
+      {Icon && <Icon className="w-4 h-4" />}
+      {children}
+    </button>
+  );
+}
+
+export function GoldButton({ children, onClick, type = 'button', disabled = false, className = '', icon: Icon }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#E5B52B] hover:bg-[#c99a1b] text-slate-950 shadow-xs disabled:opacity-50 transition-colors ${className}`}
+    >
+      {Icon && <Icon className="w-4 h-4" />}
+      {children}
+    </button>
+  );
+}
+
+export function DashboardCard({ title, icon: Icon, action, children, className = '' }) {
+  return (
+    <div className={`bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden ${className}`}>
+      <div className="px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5">
+          {Icon && (
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#087A45] border border-emerald-100 flex items-center justify-center shrink-0">
+              <Icon className="w-4 h-4" />
+            </div>
+          )}
+          <h2 className="text-sm font-bold text-[#172B24] tracking-tight">{title}</h2>
+        </div>
+        {action && <div>{action}</div>}
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+export { MinsuSeal, MinsuCampusBanner, MinsuStatCard, MinsuCard, MinsuQuickLink } from './MinsuBrand';
 
 export function PageHeader({ badge, title, subtitle, actions }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-slate-200 mb-6">
       <div>
         {badge && (
-          <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md mb-2">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#087A45] bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full mb-2">
             {badge}
           </span>
         )}
-        <h1 className="text-[28px] font-bold leading-tight text-slate-900 tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-2 text-base leading-relaxed text-slate-600">{subtitle}</p>}
+        <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight text-[#172B24] tracking-tight">{title}</h1>
+        {subtitle && <p className="mt-1.5 text-sm sm:text-base leading-relaxed text-slate-600">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
     </div>

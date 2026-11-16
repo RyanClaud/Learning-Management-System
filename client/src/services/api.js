@@ -179,7 +179,13 @@ export const lmsApi = {
     apiClient.post(`/grades/class/${classId}/approve-final`, data).then((r) => r.data),
   listCertificates: () => apiClient.get('/certificates').then((r) => r.data),
   verifyCertificate: (code) => apiClient.get(`/certificates/verify/${code}`).then((r) => r.data),
+  revokeCertificate: (id) => apiClient.post(`/certificates/${id}/revoke`).then((r) => r.data),
   issueCertificate: (data) => apiClient.post('/certificates/issue', data).then((r) => r.data),
+  getMyBadges: () => apiClient.get('/badges/personal').then((r) => r.data),
+  listBadges: (params) => apiClient.get('/badges', { params }).then((r) => r.data),
+  verifyBadge: (code) => apiClient.get(`/badges/verify/${code}`).then((r) => r.data),
+  revokeBadge: (id) => apiClient.post(`/badges/${id}/revoke`).then((r) => r.data),
+  getAssessmentPerformance: (id) => apiClient.get(`/assessments/${id}/performance`).then((r) => r.data),
   getReport: (params) => apiClient.get('/reports', { params }).then((r) => r.data),
 
   // ── Announcements ─────────────────────────────────────────────────────────

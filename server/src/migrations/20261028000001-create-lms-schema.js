@@ -46,6 +46,8 @@ const MODEL_ORDER = [
   'Grade',
   'GradeHistory',
   'Certificate',
+  'Badge',
+  'StudentBadge',
   'Announcement',
   'DiscussionThread',
   'DiscussionPost',

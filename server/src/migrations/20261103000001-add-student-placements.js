@@ -28,8 +28,9 @@ module.exports = {
   },
 
   async down(queryInterface) {
+    const dialect = queryInterface.sequelize.getDialect();
     const tables = await queryInterface.showAllTables();
-    if (tables.includes('classes')) {
+    if (dialect !== 'sqlite' && tables.includes('classes')) {
       const columns = await queryInterface.describeTable('classes');
       for (const columnName of ['eligible_cohort_section', 'eligible_year_level', 'eligible_program_id']) {
         if (columns[columnName]) {

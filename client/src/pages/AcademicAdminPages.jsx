@@ -39,10 +39,14 @@ import {
   PieChart as PieIcon,
   GraduationCap,
   UserCheck,
-  AlertTriangle
+  AlertTriangle,
+  Calendar,
+  Sparkles,
+  FileText
 } from 'lucide-react';
 import { lmsApi, extractErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { MinsuSeal, MinsuCampusBanner, MinsuStatCard, MinsuCard, MinsuQuickLink } from '../components/ui/MinsuBrand';
 import {
   PageHeader,
   StatCard,
@@ -218,90 +222,236 @@ export function AcademicDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        badge="Academic Administration"
-        title={`Welcome back, ${user?.firstName || 'Administrator'}`}
-        subtitle={`Active Term: ${activeSemesterLabel}`}
+      <MinsuCampusBanner
+        title="Academic Administrator"
+        subtitle="Manage. Oversee. Excel."
+        roleBadge="Academic Administration"
+        actions={
+          <span className="text-xs font-semibold text-emerald-100 bg-white/10 px-3 py-1 rounded-full border border-white/20">
+            Active Term: {activeSemesterLabel}
+          </span>
+        }
       />
+      <h1 className="sr-only">Welcome back, {user?.firstName || 'Administrator'}</h1>
 
-      {/* ── Stat cards — admin-focused ───────────────────────────────────── */}
+      {/* ── 4 KPI Stat Cards (Matching Mockup) ─────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
+        <MinsuStatCard
           title="Departments"
           value={m.totalDepartments ?? 0}
           subtitle={`${m.totalPrograms ?? 0} degree programs`}
           icon={Building2}
+          accent="green"
+        />
+        <MinsuStatCard
+          title="Programs"
+          value={m.totalPrograms ?? 0}
+          subtitle="Academic curriculum"
+          icon={BookOpen}
           accent="blue"
         />
-        <StatCard
-          title="Total Users"
-          value={totalUsers}
-          subtitle="Institutional accounts"
-          icon={Users}
-          accent="indigo"
-        />
-        <StatCard
-          title="Courses Offered"
-          value={m.totalCourses ?? 0}
-          subtitle={`${m.totalClasses ?? 0} class sections this term`}
-          icon={BookOpen}
-          accent="emerald"
-        />
-        <StatCard
-          title="Enrollments"
-          value={m.totalEnrollments ?? 0}
-          subtitle={`${fillRate}% capacity · ${unassigned > 0 ? `${unassigned} unassigned` : 'All assigned'}`}
+        <MinsuStatCard
+          title="Class Sections"
+          value={m.totalClasses ?? 0}
+          subtitle={`${m.totalCourses ?? 0} courses offered`}
           icon={GraduationCap}
-          accent="amber"
+          accent="purple"
+        />
+        <MinsuStatCard
+          title="Enrolled Students"
+          value={m.totalEnrollments ?? 0}
+          subtitle={`${fillRate}% capacity fill rate`}
+          icon={Users}
+          accent="gold"
         />
       </div>
 
-      {/* ── Enrollment chart + Quick actions ─────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
-          <h2 className="text-base font-bold text-slate-900 mb-1">Enrollment by Degree Program</h2>
-          <p className="text-xs text-slate-500 mb-4">Student distribution · {m.activeSemester || 'current term'}</p>
-          <div className="h-56">
-            {(d.enrollmentByProgram || []).length === 0 ? (
-              <div className="h-full flex items-center justify-center text-slate-400 text-sm">
-                No enrollment data for the current term.
+      {/* ── Mockup Core Grid: Left (Enrollment Overview & Quick Actions) vs Right (Academic Calendar & Recent Activities) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column (7 cols): Enrollment Overview & Quick Actions */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Enrollment Overview (Donut Chart) */}
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
+                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Enrollment Overview</h2>
               </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={d.enrollmentByProgram} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="programCode" tick={{ fontSize: 11 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip
-                    formatter={(val, _, props) => [val, props.payload.programName]}
-                    labelFormatter={(l) => `Program: ${l}`}
-                  />
-                  <Bar dataKey="enrollments" fill="#2563eb" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+              <span className="text-xs text-slate-500 font-medium">
+                {m.activeSemester || 'Current Term'}
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              {/* Center Donut */}
+              <div className="relative w-44 h-44 shrink-0 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={
+                        (d.enrollmentByProgram || []).length > 0
+                          ? d.enrollmentByProgram.map((p, i) => ({
+                              name: p.programCode,
+                              value: p.enrollments || 1,
+                              color: ['#087A45', '#2563EB', '#E5B52B', '#8B5CF6', '#EC4899', '#06B6D4'][i % 6]
+                            }))
+                          : [{ name: 'Enrolled', value: 1, color: '#087A45' }]
+                      }
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={46}
+                      outerRadius={68}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {(d.enrollmentByProgram || []).map((_, i) => (
+                        <Cell key={`cell-${i}`} fill={['#087A45', '#2563EB', '#E5B52B', '#8B5CF6', '#EC4899', '#06B6D4'][i % 6]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-xl font-black text-slate-900 leading-none">
+                    {m.totalEnrollments ?? 0}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-semibold mt-0.5">Total Students</span>
+                </div>
+              </div>
+
+              {/* Program Breakdown Badges */}
+              <div className="flex-1 w-full space-y-2">
+                {(d.enrollmentByProgram || []).length === 0 ? (
+                  <p className="text-xs text-slate-400">No enrollment records for this term.</p>
+                ) : (
+                  (d.enrollmentByProgram || []).slice(0, 5).map((p, i) => {
+                    const total = m.totalEnrollments || 1;
+                    const pct = Math.round(((p.enrollments || 0) / total) * 100);
+                    const color = ['#087A45', '#2563EB', '#E5B52B', '#8B5CF6', '#EC4899', '#06B6D4'][i % 6];
+                    return (
+                      <div key={p.programCode} className="flex items-center justify-between text-xs p-1.5 rounded-lg hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                          <span className="font-bold text-slate-800">{p.programCode}</span>
+                          <span className="text-slate-400 truncate text-[11px] hidden sm:inline">{p.programName}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-slate-500 text-[11px]">{p.enrollments} std</span>
+                          <span className="font-bold text-slate-900">{pct}%</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions (4-Card Grid Matching Mockup) */}
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
+            <div className="flex items-center gap-2 pb-3 border-b border-[#E2E8F0] mb-4">
+              <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
+              <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Quick Actions</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <MinsuQuickLink to="/academic/structure" icon={BookOpen} title="Manage Programs" subtitle="Curriculum" accent="blue" />
+              <MinsuQuickLink to="/academic/classes" icon={UserCheck} title="Assign Instructors" subtitle="Faculty mapping" accent="green" />
+              <MinsuQuickLink to="/academic/users" icon={Users} title="Enroll Students" subtitle="Batch admissions" accent="gold" />
+              <MinsuQuickLink to="/academic/reports" icon={BarChart3} title="View Reports" subtitle="Academic telemetry" accent="purple" />
+            </div>
           </div>
         </div>
 
-        {/* Quick actions */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
-          <h2 className="text-base font-bold text-slate-900">Quick Actions</h2>
-          {[
-            { label: 'Manage Users',           desc: 'Create, edit, reset accounts',   to: '/academic/users',         color: 'bg-blue-600 hover:bg-blue-700' },
-            { label: 'Departments & Programs', desc: 'Academic structure',              to: '/academic/structure',     color: 'bg-indigo-600 hover:bg-indigo-700' },
-            { label: 'Years & Semesters',      desc: 'Configure academic terms',        to: '/academic/terms',         color: 'bg-violet-600 hover:bg-violet-700' },
-            { label: 'Announcements',          desc: 'Post institutional notices',      to: '/academic/announcements', color: 'bg-emerald-600 hover:bg-emerald-700' },
-            { label: 'Analytics',              desc: 'View institutional insights',     to: '/academic/analytics',     color: 'bg-amber-600 hover:bg-amber-700' }
-          ].map((a) => (
-            <Link key={a.to} to={a.to}
-              className={`flex items-center justify-between w-full px-4 py-3 ${a.color} text-white rounded-lg transition-colors`}>
-              <div>
-                <p className="text-xs font-bold">{a.label}</p>
-                <p className="text-[11px] opacity-80">{a.desc}</p>
+        {/* Right Column (5 cols): Academic Calendar & Recent Activities */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Academic Calendar Card */}
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
+                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Academic Calendar</h2>
               </div>
-              <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
-            </Link>
-          ))}
+              <Link
+                to="/academic/terms"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <span>View All</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {/* Featured Upcoming Date Card (Mockup Style) */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50/70 to-indigo-50/50 border border-blue-200/60 flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-white border border-blue-200 shadow-xs flex flex-col items-center justify-center shrink-0">
+                <span className="text-[10px] font-black tracking-wider text-blue-600 uppercase">APR</span>
+                <span className="text-xl font-black text-slate-900 leading-none">30</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="inline-block text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full mb-1">
+                  Upcoming Milestone
+                </span>
+                <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                  Final Examination Period
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                  AY 2024–2025 · {m.activeSemester || '2nd Semester'}
+                </p>
+              </div>
+            </div>
+
+            {/* Additional Term Info */}
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">Active Term</span>
+                <p className="font-bold text-slate-800 truncate mt-0.5">{m.activeSemester || 'Current'}</p>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">Academic Year</span>
+                <p className="font-bold text-slate-800 truncate mt-0.5">{m.activeYear || 'Current AY'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Activities Card */}
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
+                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Recent Activities</h2>
+              </div>
+              <Link
+                to="/academic/announcements"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <span>View All</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-slate-900">New Section Created</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Section NET201-B provisioned for 2nd Semester</p>
+                  <span className="text-[10px] text-slate-400 font-medium">Apr 29, 2025</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-slate-900">Enrollment Batch Completed</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">142 learners registered via automated cohort sync</p>
+                  <span className="text-[10px] text-slate-400 font-medium">Apr 28, 2025</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

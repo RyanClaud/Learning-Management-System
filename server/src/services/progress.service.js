@@ -12,6 +12,8 @@ const {
   CourseOffering,
   Course,
   Certificate,
+  Badge,
+  StudentBadge,
   User
 } = require('../models');
 const { calculateClassGradebook } = require('./gradebook.service');
@@ -37,6 +39,7 @@ async function recalculateStudentCourseProgress(classId, studentId, lastLessonId
   });
 
   if (!classSection || !classSection.courseOffering) return null;
+  const course = classSection.courseOffering.course;
   const courseId = classSection.courseOffering.courseId;
   const passingScore = Number(classSection.courseOffering.passingScore || 75);
 
@@ -52,9 +55,14 @@ async function recalculateStudentCourseProgress(classId, studentId, lastLessonId
     LessonProgress.count({ where: { classId, studentId, status: 'completed' } }),
     Assignment.count({ where: { classId, publicationStatus: 'published' } }),
     Submission.count({ where: { classId, studentId, status: ['submitted', 'late', 'under_review', 'graded'] } }),
-    Assessment.findAll({ where: { classId, publicationStatus: ['published', 'closed'] } }),
+    Assessment.findAll({
+      where: {
+        courseId,
+        publicationStatus: ['published', 'closed']
+      }
+    }),
     AssessmentAttempt.findAll({
-      where: { classId, studentId, status: ['submitted', 'graded'] }
+      where: { studentId, status: ['submitted', 'graded'] }
     })
   ]);
 
@@ -164,7 +172,6 @@ async function recalculateStudentCourseProgress(classId, studentId, lastLessonId
     const existingCert = await Certificate.findOne({ where: { classId, studentId } });
     if (!existingCert) {
       const student = await User.findByPk(studentId);
-      const course = classSection.courseOffering.course;
       const certCode = `AIT-CERT-${new Date().getFullYear()}-${classId}${studentId}${Math.floor(100 + Math.random() * 900)}`;
       const verifyHash = crypto.createHash('sha256').update(`${certCode}:${student?.email}:${courseId}`).digest('hex');
 
@@ -188,6 +195,50 @@ async function recalculateStudentCourseProgress(classId, studentId, lastLessonId
         title: `Course Completed & Certificate Earned: ${course?.title}`,
         message: `Congratulations! You passed the course quizzes and completed all lessons. Certificate ${certCode} has been automatically issued.`,
         destinationUrl: '/student/certificates'
+      });
+    }
+
+    // Auto-award Course Completion Badge
+    const [completionBadge] = await Badge.findOrCreate({
+      where: { courseId, criteriaType: 'course_completion' },
+      defaults: {
+        badgeCode: `BDG-${course?.code || 'COURSE'}-COMPLETION`,
+        verificationHash: crypto.createHash('sha256').update(`BDG:${courseId}:completion`).digest('hex'),
+        title: `${course?.title || 'Course'} Mastery Specialist`,
+        description: `Awarded for completing all curriculum modules, laboratories, and mastery checkpoint quizzes in ${course?.title}.`,
+        icon: 'award',
+        category: 'course_achievement',
+        criteriaType: 'course_completion',
+        criteriaThreshold: passingScore,
+        courseId,
+        status: 'active'
+      }
+    });
+
+    const existingBadge = await StudentBadge.findOne({
+      where: { studentId, badgeId: completionBadge.id }
+    });
+    if (!existingBadge) {
+      const student = await User.findByPk(studentId);
+      const badgeCode = `BDG-EARNED-${new Date().getFullYear()}-${courseId}${studentId}${Math.floor(100 + Math.random() * 900)}`;
+      const badgeHash = crypto.createHash('sha256').update(`${badgeCode}:${student?.email}:${courseId}`).digest('hex');
+      await StudentBadge.create({
+        badgeId: completionBadge.id,
+        studentId,
+        courseId,
+        badgeCode,
+        verificationHash: badgeHash,
+        earnedAt: new Date(),
+        metadata: { finalScore: effectiveScore, courseCode: course?.code, recipientName: student ? `${student.firstName} ${student.lastName}` : `Student #${studentId}` },
+        status: 'active'
+      });
+
+      await createNotification({
+        userId: studentId,
+        type: 'badge',
+        title: `New Badge Unlocked: ${completionBadge.title}`,
+        message: `Congratulations! You earned the "${completionBadge.title}" digital skill badge for completing ${course?.title}.`,
+        destinationUrl: '/student/badges'
       });
     }
   }

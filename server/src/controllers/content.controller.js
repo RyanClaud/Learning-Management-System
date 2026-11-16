@@ -433,17 +433,27 @@ async function previewResourceFile(req, res, next) {
 
     const classId = Number(req.query.classId);
     if (!classId) {
-      throw new AppError('classId is required to preview this resource.', 400, 'CLASS_ID_REQUIRED');
-    }
-
-    const { classSection } = await verifyClassAccess(req.user, classId, {
-      allowAdmin: true,
-      allowInstructor: true,
-      allowTA: true,
-      allowStudent: true
-    });
-    if (Number(classSection.courseOffering?.courseId) !== Number(resource.courseId)) {
-      throw new AppError('This resource does not belong to the selected class.', 403, 'CLASS_ACCESS_DENIED');
+      if (req.user.primaryRole === 'super_admin' || req.user.primaryRole === 'academic_admin') {
+        // Admins can preview any resource
+      } else if (req.user.primaryRole === 'instructor') {
+        const { Course } = require('../models');
+        const course = await Course.findByPk(resource.courseId);
+        if (!course || (course.createdBy !== req.user.id && resource.uploadedBy !== req.user.id)) {
+          throw new AppError('classId is required to preview this resource.', 400, 'CLASS_ID_REQUIRED');
+        }
+      } else {
+        throw new AppError('classId is required to preview this resource.', 400, 'CLASS_ID_REQUIRED');
+      }
+    } else {
+      const { classSection } = await verifyClassAccess(req.user, classId, {
+        allowAdmin: true,
+        allowInstructor: true,
+        allowTA: true,
+        allowStudent: true
+      });
+      if (Number(classSection.courseOffering?.courseId) !== Number(resource.courseId)) {
+        throw new AppError('This resource does not belong to the selected class.', 403, 'CLASS_ACCESS_DENIED');
+      }
     }
 
     const safeName = path.basename(resource.storedFilename);

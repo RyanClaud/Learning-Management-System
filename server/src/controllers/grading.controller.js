@@ -14,6 +14,8 @@ const {
   AcademicYear,
   Semester,
   Certificate,
+  Badge,
+  StudentBadge,
   Submission,
   Assignment,
   InstructorAssignment,
@@ -405,14 +407,21 @@ async function listCertificates(req, res, next) {
     const certificates = await Certificate.findAll({
       where,
       include: [
-        { model: Course, as: 'course', attributes: ['id', 'code', 'title', 'category', 'level', 'creditUnits'] },
+        { model: Course, as: 'course', attributes: ['id', 'code', 'title', 'category', 'level', 'creditUnits', 'imageUrl'] },
         { model: ClassSection, as: 'classSection', attributes: ['id', 'sectionCode'] },
         { model: User, as: 'student', attributes: ['id', 'firstName', 'lastName', 'email', 'studentNumber'] }
       ],
       order: [['issuedAt', 'DESC']]
     });
 
-    return res.status(200).json({ success: true, data: { certificates } });
+    const enriched = certificates.map((cert) => {
+      const c = cert.toJSON();
+      c.studentIdNumber = cert.student?.studentNumber || (`RAY-${String(cert.student?.id || cert.studentId).padStart(6, '0')}`);
+      c.verificationUrl = `/verify/certificate/${cert.verificationHash || cert.certificateCode}`;
+      return c;
+    });
+
+    return res.status(200).json({ success: true, data: { certificates: enriched } });
   } catch (err) {
     return next(err);
   }
@@ -420,11 +429,19 @@ async function listCertificates(req, res, next) {
 
 async function verifyCertificate(req, res, next) {
   try {
-    const { code } = req.params;
+    const code = (req.params.code || '').trim();
+    if (!code) throw new AppError('Verification code or hash is required.', 400);
+
     const cert = await Certificate.findOne({
-      where: { certificateCode: code.trim() },
+      where: {
+        [Op.or]: [
+          { certificateCode: code },
+          { verificationHash: code }
+        ]
+      },
       include: [
-        { model: Course, as: 'course', attributes: ['code', 'title', 'creditUnits'] }
+        { model: Course, as: 'course', attributes: ['id', 'code', 'title', 'creditUnits', 'category'] },
+        { model: User, as: 'student', attributes: ['id', 'firstName', 'lastName', 'studentNumber'] }
       ]
     });
 
@@ -432,15 +449,162 @@ async function verifyCertificate(req, res, next) {
       return res.status(404).json({
         success: false,
         verified: false,
-        message: 'No valid certificate found matching that verification code.'
+        status: 'INVALID',
+        message: 'No valid certificate found matching that verification code or cryptographic hash.'
       });
     }
 
+    const isRevoked = cert.status === 'revoked';
+    const statusLabel = isRevoked ? 'REVOKED' : 'VALID';
+
+    const certPayload = {
+      type: 'certificate',
+      status: statusLabel,
+      certificateCode: cert.certificateCode,
+      verificationHash: cert.verificationHash,
+      recipientName: cert.recipientName,
+      studentIdNumber: cert.student?.studentNumber || (`RAY-${String(cert.student?.id || cert.studentId).padStart(6, '0')}`),
+      courseTitle: cert.courseTitle || cert.course?.title,
+      courseCode: cert.courseCode || cert.course?.code,
+      finalScore: cert.finalScore,
+      issuedAt: cert.issuedAt,
+      issuingInstitution: 'Aetheria Institute of Technology & Networking Academy',
+      issuingInstructor: 'Authorized Program Faculty & Institutional Registrar',
+      verificationUrl: `/verify/certificate/${cert.verificationHash}`
+    };
+
     return res.status(200).json({
       success: true,
-      verified: cert.status === 'active',
-      data: { certificate: cert }
+      verified: !isRevoked,
+      data: {
+        certificate: { ...cert.toJSON(), ...certPayload },
+        ...certPayload
+      }
     });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function listStudentBadges(req, res, next) {
+  try {
+    const studentId = req.user.primaryRole === 'student' ? req.user.id : Number(req.query.studentId || req.user.id);
+    const badges = await StudentBadge.findAll({
+      where: { studentId },
+      include: [
+        { model: Badge, as: 'badge' },
+        { model: Course, as: 'course', attributes: ['id', 'code', 'title'] }
+      ],
+      order: [['earnedAt', 'DESC']]
+    });
+
+    const enriched = badges.map((sb) => {
+      const b = sb.toJSON();
+      b.verificationUrl = `/verify/badge/${sb.verificationHash || sb.badgeCode}`;
+      return b;
+    });
+
+    return res.status(200).json({ success: true, data: { badges: enriched } });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function verifyBadge(req, res, next) {
+  try {
+    const code = (req.params.code || '').trim();
+    if (!code) throw new AppError('Badge verification code or hash is required.', 400);
+
+    const studentBadge = await StudentBadge.findOne({
+      where: {
+        [Op.or]: [
+          { badgeCode: code },
+          { verificationHash: code }
+        ]
+      },
+      include: [
+        { model: Badge, as: 'badge' },
+        { model: Course, as: 'course', attributes: ['id', 'code', 'title'] },
+        { model: User, as: 'student', attributes: ['id', 'firstName', 'lastName', 'studentNumber'] }
+      ]
+    });
+
+    if (!studentBadge) {
+      return res.status(404).json({
+        success: false,
+        verified: false,
+        status: 'INVALID',
+        message: 'No authentic digital badge found matching that identifier or cryptographic hash.'
+      });
+    }
+
+    const isRevoked = studentBadge.status === 'revoked' || studentBadge.badge?.status === 'revoked';
+    const statusLabel = isRevoked ? 'REVOKED' : 'VALID';
+
+    return res.status(200).json({
+      success: true,
+      verified: !isRevoked,
+      data: {
+        type: 'badge',
+        status: statusLabel,
+        badgeCode: studentBadge.badgeCode,
+        verificationHash: studentBadge.verificationHash,
+        title: studentBadge.badge?.title || 'Academic Achievement Badge',
+        description: studentBadge.badge?.description || 'Earned for course milestones and quiz excellence.',
+        criteriaType: studentBadge.badge?.criteriaType,
+        recipientName: studentBadge.student ? `${studentBadge.student.firstName} ${studentBadge.student.lastName}` : (studentBadge.metadata?.recipientName || 'Verified Learner'),
+        studentIdNumber: studentBadge.student?.studentNumber || (`RAY-${String(studentBadge.studentId).padStart(6, '0')}`),
+        courseTitle: studentBadge.course?.title || 'Course Milestone',
+        courseCode: studentBadge.course?.code,
+        earnedAt: studentBadge.earnedAt,
+        issuingInstitution: 'Aetheria Institute of Technology & Networking Academy',
+        verificationUrl: `/verify/badge/${studentBadge.verificationHash}`
+      }
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function revokeCertificate(req, res, next) {
+  try {
+    const certId = Number(req.params.id);
+    const cert = await Certificate.findByPk(certId);
+    if (!cert) throw new AppError('Certificate not found.', 404);
+
+    await cert.update({ status: 'revoked' });
+    await recordAudit({
+      req,
+      action: 'CERTIFICATE_REVOKED',
+      category: 'grade',
+      entityType: 'Certificate',
+      entityId: cert.id,
+      metadata: { certificateCode: cert.certificateCode, studentId: cert.studentId }
+    });
+
+    return res.status(200).json({ success: true, message: 'Certificate has been revoked.', data: { certificate: cert } });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function revokeBadge(req, res, next) {
+  try {
+    const badgeId = Number(req.params.id);
+    const studentBadge = await StudentBadge.findByPk(badgeId);
+    if (!studentBadge) throw new AppError('Badge record not found.', 404);
+
+    await studentBadge.update({ status: 'revoked' });
+    await recordAudit({
+      req,
+      action: 'BADGE_REVOKED',
+      category: 'grade',
+      entityType: 'StudentBadge',
+      entityId: studentBadge.id,
+      metadata: { badgeCode: studentBadge.badgeCode, studentId: studentBadge.studentId }
+    });
+
+    return res.status(200).json({ success: true, message: 'Badge credential has been revoked.', data: { badge: studentBadge } });
   } catch (err) {
     return next(err);
   }
@@ -964,6 +1128,10 @@ module.exports = {
   listCertificates,
   verifyCertificate,
   issueCertificateManually,
+  listStudentBadges,
+  verifyBadge,
+  revokeCertificate,
+  revokeBadge,
   generateReport,
   importGradesCsv
 };

@@ -1638,6 +1638,59 @@ Router(config-router)# auto-cost reference-bandwidth 10000`,
       status: 'active'
     });
 
+    // 16b. Seed Badges & Maya Lin's Earned Badges
+    const badgeNetMaster = await models.Badge.create({
+      badgeCode: 'BDG-NET-201-COMPLETION',
+      verificationHash: crypto.createHash('sha256').update('BDG-NET-201-COMPLETION:courseNet').digest('hex'),
+      title: 'Enterprise Networking Specialist',
+      description: 'Awarded for completing all curriculum modules, laboratories, and mastery checkpoint quizzes in NET-201 Enterprise Networking, Security, and Automation.',
+      icon: 'award',
+      category: 'course_achievement',
+      criteriaType: 'course_completion',
+      criteriaThreshold: 75.00,
+      courseId: courseNet.id,
+      createdBy: instructor1.id,
+      status: 'active'
+    });
+
+    const badgeNetQuizAce = await models.Badge.create({
+      badgeCode: 'BDG-NET-201-QUIZ-ACE',
+      verificationHash: crypto.createHash('sha256').update('BDG-NET-201-QUIZ-ACE:courseNet').digest('hex'),
+      title: 'OSPF Routing Champion',
+      description: 'Demonstrated superior mastery by scoring over 90% on the OSPFv2 Topic and Course Checkpoint Quiz.',
+      icon: 'zap',
+      category: 'quiz_mastery',
+      criteriaType: 'perfect_quiz',
+      criteriaThreshold: 90.00,
+      courseId: courseNet.id,
+      createdBy: instructor1.id,
+      status: 'active'
+    });
+
+    const studentBadge1Hash = crypto.createHash('sha256').update(`STU-BDG-8841-NET:${student1.email}`).digest('hex');
+    await models.StudentBadge.create({
+      badgeId: badgeNetMaster.id,
+      studentId: student1.id,
+      courseId: courseNet.id,
+      badgeCode: 'STU-BDG-8841-NET',
+      verificationHash: studentBadge1Hash,
+      earnedAt: new Date('2026-10-22T09:00:00Z'),
+      metadata: { finalScore: 96.50, courseCode: 'NET-201', recipientName: 'Maya Lin' },
+      status: 'active'
+    });
+
+    const studentBadge2Hash = crypto.createHash('sha256').update(`STU-BDG-8842-QUIZ:${student1.email}`).digest('hex');
+    await models.StudentBadge.create({
+      badgeId: badgeNetQuizAce.id,
+      studentId: student1.id,
+      courseId: courseNet.id,
+      badgeCode: 'STU-BDG-8842-QUIZ',
+      verificationHash: studentBadge2Hash,
+      earnedAt: new Date('2026-10-22T09:00:00Z'),
+      metadata: { finalScore: 96.50, courseCode: 'NET-201', recipientName: 'Maya Lin' },
+      status: 'active'
+    });
+
     // 17. Seed Announcements, Discussions, Messages, Notifications, and Audit Logs
     await models.Announcement.bulkCreate([
       {

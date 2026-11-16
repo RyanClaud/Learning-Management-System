@@ -694,7 +694,27 @@ async function getCourseById(req, res, next) {
 
 async function createCourse(req, res, next) {
   try {
-    const payload = courseSchema.parse(req.body);
+    const rawBody = { ...req.body };
+    if (!rawBody.departmentId) {
+      if (req.user.departmentId) {
+        rawBody.departmentId = req.user.departmentId;
+      } else {
+        const firstDept = await Department.findOne({ order: [['id', 'ASC']] });
+        rawBody.departmentId = firstDept ? firstDept.id : 1;
+      }
+    }
+    if (!rawBody.code && rawBody.title) {
+      const codeBase = rawBody.title.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'CRS';
+      rawBody.code = `${codeBase}-${Math.floor(100 + Math.random() * 900)}`;
+    }
+    if (typeof rawBody.learningObjectives === 'string') {
+      rawBody.learningObjectives = rawBody.learningObjectives
+        .split(/[\n,;]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+
+    const payload = courseSchema.parse(rawBody);
     const course = await Course.create({
       ...payload,
       createdBy: req.user.id
@@ -706,7 +726,7 @@ async function createCourse(req, res, next) {
       category: 'course',
       entityType: 'Course',
       entityId: course.id,
-      metadata: { code: course.code, title: course.title }
+      metadata: { code: course.code, title: course.title, createdBy: req.user.id }
     });
 
     return res.status(201).json({ success: true, message: 'Course created successfully.', data: { course } });
@@ -723,7 +743,41 @@ async function updateCourse(req, res, next) {
     const course = await Course.findByPk(id);
     if (!course) throw new AppError('Course not found.', 404, 'COURSE_NOT_FOUND');
 
-    const payload = updateCourseSchema.parse(req.body);
+    // Enforce ownership/assignment rule for instructors:
+    if (req.user.primaryRole === 'instructor') {
+      const isCreator = course.createdBy === req.user.id;
+      let isAssigned = false;
+      if (!isCreator) {
+        const assignment = await InstructorAssignment.findOne({
+          where: { instructorId: req.user.id },
+          include: [{
+            model: ClassSection,
+            as: 'classSection',
+            include: [{
+              model: CourseOffering,
+              as: 'courseOffering',
+              where: { courseId: course.id },
+              required: true
+            }]
+          }]
+        });
+        if (assignment) isAssigned = true;
+      }
+
+      if (!isCreator && !isAssigned) {
+        throw new AppError('Forbidden: Instructors can only manage courses assigned to or created by them.', 403, 'COURSE_ACCESS_DENIED');
+      }
+    }
+
+    const rawBody = { ...req.body };
+    if (typeof rawBody.learningObjectives === 'string') {
+      rawBody.learningObjectives = rawBody.learningObjectives
+        .split(/[\n,;]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+
+    const payload = updateCourseSchema.parse(rawBody);
     await course.update(payload);
 
     await recordAudit({
@@ -747,6 +801,10 @@ async function deleteCourse(req, res, next) {
 
     const course = await Course.findByPk(id);
     if (!course) throw new AppError('Course not found.', 404, 'COURSE_NOT_FOUND');
+
+    if (req.user.primaryRole === 'instructor' && course.createdBy !== req.user.id) {
+      throw new AppError('Forbidden: Instructors can only delete or archive courses created by them.', 403, 'COURSE_ACCESS_DENIED');
+    }
 
     // Guard: cannot delete if course has offerings
     const offeringsCount = await CourseOffering.count({ where: { courseId: id } });

@@ -102,7 +102,7 @@ router.get('/courses', requireAuth, acadCtrl.listCourses);
 router.get('/courses/:id', requireAuth, acadCtrl.getCourseById);
 router.post('/courses', requireAuth, requireRole('super_admin', 'academic_admin', 'instructor'), acadCtrl.createCourse);
 router.put('/courses/:id', requireAuth, requireRole('super_admin', 'academic_admin', 'instructor'), acadCtrl.updateCourse);
-router.delete('/courses/:id', requireAuth, requireRole('super_admin', 'academic_admin'), acadCtrl.deleteCourse);
+router.delete('/courses/:id', requireAuth, requireRole('super_admin', 'academic_admin', 'instructor'), acadCtrl.deleteCourse);
 
 router.get('/course-offerings', requireAuth, acadCtrl.listCourseOfferings);
 router.post('/course-offerings', requireAuth, requirePermission('courses:manage'), acadCtrl.createCourseOffering);
@@ -176,6 +176,7 @@ router.delete('/questions/:id', requireAuth, requirePermission('questions:manage
 
 router.get('/assessments', requireAuth, assessCtrl.listAssessments);
 router.post('/assessments', requireAuth, requirePermission('assessments:manage'), assessCtrl.createAssessment);
+router.get('/assessments/:id/performance', requireAuth, requireRole('super_admin', 'academic_admin', 'instructor'), assessCtrl.getAssessmentPerformance);
 router.put('/assessments/:id', requireAuth, requirePermission('assessments:manage'), assessCtrl.updateAssessment);
 router.delete('/assessments/:id', requireAuth, requirePermission('assessments:manage'), assessCtrl.deleteAssessment);
 router.post('/assessments/:id/start', requireAuth, assessCtrl.startOrResumeAttempt);
@@ -184,7 +185,7 @@ router.put('/assessment-attempts/:attemptId/save', requireAuth, assessCtrl.saveA
 router.post('/assessment-attempts/:attemptId/submit', requireAuth, assessCtrl.submitAttempt);
 router.post('/assessment-attempts/:attemptId/grade', requireAuth, requirePermission('assessments:grade'), assessCtrl.manualGradeAttempt);
 
-// 8. Gradebook, Certificates, Reports
+// 8. Gradebook, Certificates, Badges, Reports
 router.get('/grades/personal', requireAuth, gradingCtrl.getStudentPersonalGrades);
 router.get('/grades/class/:classId', requireAuth, gradingCtrl.getClassGradebookView);
 router.put('/grades/class/:classId/categories', requireAuth, requirePermission('gradebook:manage'), gradingCtrl.updateClassGradeCategories);
@@ -195,6 +196,12 @@ router.post('/grades/class/:classId/approve-final', requireAuth, requirePermissi
 router.get('/certificates', requireAuth, gradingCtrl.listCertificates);
 router.get('/certificates/verify/:code', gradingCtrl.verifyCertificate);
 router.post('/certificates/issue', requireAuth, requirePermission('certificates:issue'), gradingCtrl.issueCertificateManually);
+router.post('/certificates/:id/revoke', requireAuth, requireRole('super_admin', 'academic_admin', 'instructor'), gradingCtrl.revokeCertificate);
+
+router.get('/badges/personal', requireAuth, gradingCtrl.listStudentBadges);
+router.get('/badges', requireAuth, gradingCtrl.listStudentBadges);
+router.get('/badges/verify/:code', gradingCtrl.verifyBadge);
+router.post('/badges/:id/revoke', requireAuth, requireRole('super_admin', 'academic_admin', 'instructor'), gradingCtrl.revokeBadge);
 
 router.get('/reports', requireAuth, requirePermission('reports:export'), gradingCtrl.generateReport);
 

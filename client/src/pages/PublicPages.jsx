@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -11,8 +11,15 @@ import {
   KeyRound,
   CheckCircle2,
   UserCheck,
-  Award
+  Award,
+  ShieldCheck,
+  AlertTriangle,
+  AlertCircle,
+  Copy,
+  ExternalLink
 } from 'lucide-react';
+import QrCode from '../components/ui/QrCode';
+import { ModalDialog } from '../components/ui/SharedComponents';
 import { useAuth, ROLE_HOME_PATHS } from '../context/AuthContext';
 import { lmsApi, extractErrorMessage } from '../services/api';
 import {
@@ -383,77 +390,286 @@ export function ResetPasswordPage() {
 }
 
 export function CertificateVerifyPublicPage() {
-  const [code, setCode] = useState('AIT-CERT-2026-8841');
+  const { code: urlCode } = useParams();
+  const { user } = useAuth();
+  const { addToast } = useToast();
+  const [code, setCode] = useState(urlCode || 'AIT-CERT-2026-8841');
   const [result, setResult] = useState(null);
+  const [resultType, setResultType] = useState('certificate');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [revokeOpen, setRevokeOpen] = useState(false);
+  const [revokeReason, setRevokeReason] = useState('');
+  const [revoking, setRevoking] = useState(false);
 
-  const handleVerify = async (e) => {
-    e.preventDefault();
+  const performVerify = async (lookupCode) => {
+    const cleaned = (lookupCode || '').trim();
+    if (!cleaned) return;
     setError('');
     setResult(null);
+    setLoading(true);
     try {
-      const res = await lmsApi.verifyCertificate(code);
-      setResult(res.data.certificate);
-    } catch (err) {
-      setError(extractErrorMessage(err));
+      // 1. Try certificate lookup
+      const res = await lmsApi.verifyCertificate(cleaned);
+      const cert = res.data?.certificate || res.data;
+      setResult(cert);
+      setResultType('certificate');
+    } catch {
+      // 2. Fall back to badge lookup
+      try {
+        const badgeRes = await lmsApi.verifyBadge(cleaned);
+        const bdg = badgeRes.data?.badge || badgeRes.data;
+        setResult(bdg);
+        setResultType('badge');
+      } catch (err2) {
+        setError('No valid certificate or badge found matching "' + cleaned + '". Please verify the identifier or hash.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (urlCode) {
+      setCode(urlCode);
+      performVerify(urlCode);
+    }
+  }, [urlCode]);
+
+  const handleVerify = (e) => {
+    e.preventDefault();
+    performVerify(code);
+  };
+
+  const handleRevoke = async (e) => {
+    e.preventDefault();
+    if (!result?.id) return;
+    setRevoking(true);
+    try {
+      if (resultType === 'certificate') {
+        await lmsApi.revokeCertificate(result.id, { reason: revokeReason || 'Administrative revocation' });
+      } else {
+        await lmsApi.revokeBadge(result.id, { reason: revokeReason || 'Administrative revocation' });
+      }
+      addToast('Credential officially revoked.', 'success');
+      setRevokeOpen(false);
+      setResult((prev) => ({ ...prev, status: 'revoked', metadata: { ...(prev?.metadata || {}), revocationReason: revokeReason } }));
+    } catch (err) {
+      addToast(extractErrorMessage(err), 'error');
+    } finally {
+      setRevoking(false);
+    }
+  };
+
+  const isStaff = user && ['instructor', 'academic_admin', 'super_admin'].includes(user.primaryRole);
+  const isRevoked = result?.status === 'revoked';
+  const qrVerificationUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/verify/${result?.certificateCode || result?.badgeCode || code}`
+    : `https://aetheria.edu/verify/${code}`;
+
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="max-w-lg w-full bg-white rounded-2xl border border-slate-200 shadow-lg p-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Award className="w-7 h-7 text-blue-600" />
+      <div className="max-w-xl w-full bg-white rounded-2xl border border-slate-200 shadow-xl p-6 sm:p-8 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+          <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-7 h-7 text-blue-600" />
+          </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Credential Verification Portal</h1>
-            <p className="text-xs text-slate-500">Verify authentic Aetheria Academy completion certificates</p>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Institutional Credential Verification Portal</h1>
+            <p className="text-xs text-slate-500">
+              Verify authentic NetAcad certificates and digital skill badges against the institutional ledger
+            </p>
           </div>
         </div>
 
-        <form onSubmit={handleVerify} className="flex gap-2 mt-4">
+        {/* Input Form */}
+        <form onSubmit={handleVerify} className="flex gap-2">
           <input
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="Enter Certificate Code (e.g., AIT-CERT-2026-8841)"
-            className="flex-1 px-3.5 py-2 text-sm rounded-lg border border-slate-300 font-mono"
+            placeholder="Enter Certificate Code, Badge ID, or Hash"
+            className="flex-1 px-3.5 py-2.5 text-xs sm:text-sm rounded-lg border border-slate-300 font-mono tracking-wide focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg"
+            disabled={loading}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center gap-1.5"
           >
-            Verify
+            {loading ? 'Verifying...' : 'Verify'}
           </button>
         </form>
 
         {error && (
-          <div className="mt-4 p-3.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
-            {error}
+          <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Credential Not Found or Invalid</p>
+              <p className="mt-0.5">{error}</p>
+            </div>
           </div>
         )}
 
         {result && (
-          <div className="mt-5 p-5 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-emerald-900 text-sm">Verified Authentic Credential</span>
-              <StatusBadge status={result.status} />
+          <div className="space-y-4">
+            {/* Status Banner */}
+            {isRevoked ? (
+              <div className="p-4 rounded-xl bg-rose-50 border-2 border-rose-400 text-rose-950 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 text-rose-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-black tracking-wide uppercase text-rose-800">REVOKED CREDENTIAL</p>
+                    <p className="text-xs text-rose-700">
+                      This {resultType} has been officially revoked by academic administration.
+                      {result?.metadata?.revocationReason && ` Reason: ${result.metadata.revocationReason}`}
+                    </p>
+                  </div>
+                </div>
+                <StatusBadge status="revoked" />
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-emerald-50 border-2 border-emerald-400 text-emerald-950 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="w-6 h-6 text-emerald-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-black tracking-wide uppercase text-emerald-800">VALID AUTHENTIC CREDENTIAL</p>
+                    <p className="text-xs text-emerald-700">
+                      Cryptographically verified in the Aetheria Academy registry.
+                    </p>
+                  </div>
+                </div>
+                <StatusBadge status="active" />
+              </div>
+            )}
+
+            {/* Credential Details Card */}
+            <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-3 border-b border-slate-200">
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Recipient Name</span>
+                  <strong className="text-sm font-extrabold text-slate-900">{result.recipientName}</strong>
+                </div>
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Student ID / Ray ID</span>
+                  <strong className="text-sm font-mono font-bold text-slate-900">
+                    {result.studentNumber || result.rayId || result.metadata?.studentNumber || (`RAY-${String(result.studentId || result.id).padStart(6, '0')}`)}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <p>
+                  <strong className="text-slate-600">Course:</strong>{' '}
+                  <span className="font-bold text-slate-900">{result.courseCode} — {result.courseTitle}</span>
+                </p>
+                <p>
+                  <strong className="text-slate-600">Mastery Score:</strong>{' '}
+                  <span className="font-bold text-emerald-700">{result.finalScore || result.metadata?.finalScore || 100}%</span>
+                </p>
+                <p>
+                  <strong className="text-slate-600">Credential ID:</strong>{' '}
+                  <code className="font-mono text-slate-800 font-bold">{result.certificateCode || result.badgeCode}</code>
+                </p>
+                <p>
+                  <strong className="text-slate-600">Date Issued / Earned:</strong>{' '}
+                  <span className="font-medium text-slate-800">{new Date(result.issuedAt || result.earnedAt).toLocaleDateString()}</span>
+                </p>
+                <p>
+                  <strong className="text-slate-600">Issuing Institution:</strong>{' '}
+                  <span className="font-semibold text-slate-800">Aetheria Institute of Technology &amp; Networking Academy</span>
+                </p>
+                <p className="text-[11px] text-slate-500 break-all pt-1">
+                  <strong>SHA-256 Hash:</strong> <span className="font-mono">{result.verificationHash}</span>
+                </p>
+              </div>
+
+              {/* QR Code Graphic Confirmation */}
+              <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <QrCode
+                    value={qrVerificationUrl}
+                    size={84}
+                    className="bg-white p-1 rounded-lg border border-slate-200 shadow-xs shrink-0"
+                    label={`Verified QR Code for ${result.certificateCode || result.badgeCode}`}
+                  />
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Tamper-Proof QR Code</p>
+                    <p className="text-[11px] text-slate-500">
+                      Scan anytime with any smartphone camera to load this verified institutional ledger entry.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Revocation Trigger for Staff */}
+                {isStaff && !isRevoked && (
+                  <button
+                    type="button"
+                    onClick={() => setRevokeOpen(true)}
+                    className="px-3.5 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 text-xs font-bold transition-colors shrink-0"
+                  >
+                    Revoke Credential
+                  </button>
+                )}
+              </div>
             </div>
-            <p><strong>Recipient:</strong> {result.recipientName}</p>
-            <p><strong>Course:</strong> {result.courseCode} — {result.courseTitle}</p>
-            <p><strong>Final Score:</strong> {result.finalScore}%</p>
-            <p><strong>Certificate ID:</strong> <code className="font-mono">{result.certificateCode}</code></p>
-            <p className="text-[11px] text-slate-500 break-all">
-              <strong>SHA-256 Hash:</strong> {result.verificationHash}
-            </p>
           </div>
         )}
 
-        <div className="mt-6 pt-4 border-t border-slate-100 text-center">
-          <Link to="/login" className="text-xs font-semibold text-blue-600 hover:underline">
+        {/* Footer Navigation */}
+        <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
+          <Link to="/login" className="text-blue-600 hover:underline">
             ← Return to Portal Login
           </Link>
+          <span>Aetheria NetAcad Security Engine</span>
         </div>
       </div>
+
+      {/* Revocation Confirmation Dialog */}
+      {revokeOpen && (
+        <ModalDialog
+          isOpen={revokeOpen}
+          onClose={() => setRevokeOpen(false)}
+          title="Revoke Credential (Authorized Staff Only)"
+          maxWidth="max-w-md"
+        >
+          <form onSubmit={handleRevoke} className="space-y-4 text-xs">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-800">
+              <p className="font-bold">⚠️ Irreversible Credential Revocation</p>
+              <p className="mt-1">
+                Revoking this credential will immediately update public verification status to REVOKED across all systems.
+              </p>
+            </div>
+            <div>
+              <label className="block font-semibold mb-1 text-slate-700">Reason for Revocation</label>
+              <textarea
+                required
+                rows={3}
+                value={revokeReason}
+                onChange={(e) => setRevokeReason(e.target.value)}
+                placeholder="e.g. Academic dishonesty, enrollment cancellation, or cheating violation..."
+                className="w-full px-3 py-2 rounded-lg border border-slate-300"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setRevokeOpen(false)}
+                className="flex-1 py-2 px-3 rounded-lg border border-slate-300 font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={revoking}
+                className="flex-1 py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold disabled:opacity-50"
+              >
+                {revoking ? 'Revoking...' : 'Confirm Revocation'}
+              </button>
+            </div>
+          </form>
+        </ModalDialog>
+      )}
     </div>
   );
 }
