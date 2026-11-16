@@ -8,6 +8,7 @@ import {
   Loader2,
   Inbox
 } from 'lucide-react';
+import minsuCampusBg from '../../assets/minsu-bg.jpg';
 
 const ToastContext = createContext(null);
 
@@ -210,17 +211,53 @@ export { MinsuSeal, MinsuCampusBanner, MinsuStatCard, MinsuCard, MinsuQuickLink 
 
 export function PageHeader({ badge, title, subtitle, actions }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-slate-200 mb-6">
-      <div>
-        {badge && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#087A45] bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full mb-2">
-            {badge}
-          </span>
-        )}
-        <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight text-[#172B24] tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-1.5 text-sm sm:text-base leading-relaxed text-slate-600">{subtitle}</p>}
+    <div className="relative overflow-hidden rounded-2xl text-white shadow-md border border-[#003824] p-5 sm:p-6 mb-6">
+      {/* Real MinSU Campus Building Photograph Background */}
+      <div
+        className="absolute inset-0 bg-cover bg-center select-none"
+        style={{
+          backgroundImage: `url(${minsuCampusBg})`,
+          backgroundPosition: 'center 40%'
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Dark Green Gradient Wash: high contrast on text, revealing campus scenery */}
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-[#003824]/95 via-[#004D32]/85 to-[#087A45]/45"
+        aria-hidden="true"
+      />
+
+      {/* Gold & Emerald Curved Sweep on right */}
+      <div className="absolute right-0 top-0 bottom-0 w-80 pointer-events-none select-none hidden md:block overflow-hidden">
+        <div className="absolute -right-10 -top-10 w-80 h-80 rounded-full border-[5px] border-[#E5B52B]/30 pointer-events-none" />
+        <div className="absolute -right-20 -bottom-10 w-96 h-96 rounded-full border-[10px] border-[#159957]/30 pointer-events-none" />
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
+
+      <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="max-w-2xl">
+          {badge && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-black/30 text-[#E5B52B] border border-[#E5B52B]/40 backdrop-blur-md mb-2 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E5B52B] animate-pulse" />
+              {badge}
+            </span>
+          )}
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white leading-tight drop-shadow-xs">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="mt-1 text-xs sm:text-sm text-emerald-100 font-medium leading-relaxed max-w-xl drop-shadow-xs">
+              {subtitle}
+            </p>
+          )}
+        </div>
+
+        {actions && (
+          <div className="relative z-10 flex flex-wrap items-center gap-2.5 shrink-0">
+            {actions}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
-  CartesianGrid, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
+  CartesianGrid, PieChart, Pie, Cell
 } from 'recharts';
 import {
   BookOpen, ClipboardCheck, Clock, AlertCircle, Plus, Terminal,
@@ -149,192 +149,6 @@ export function InstructorDashboardPage() {
           linkTo="/instructor/reports"
           linkLabel="View Report"
         />
-      </div>
-
-      {/* ── Mockup Core Grid: Course Overview & My Classes vs Upcoming Activities & Recent Submissions ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (7 cols): Course Overview & My Classes */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Course Overview Card */}
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
-                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Course Overview</h2>
-              </div>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="flex items-center gap-1.5 text-slate-500">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#087A45] inline-block" /> Enrollments
-                </span>
-                <span className="flex items-center gap-1.5 text-slate-500">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB] inline-block" /> Activity
-                </span>
-                <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                  Last 7 Days
-                </span>
-              </div>
-            </div>
-
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={[
-                  { day: 'Mon', enrollments: 35, activity: 70 },
-                  { day: 'Tue', enrollments: 50, activity: 85 },
-                  { day: 'Wed', enrollments: 75, activity: 110 },
-                  { day: 'Thu', enrollments: 60, activity: 90 },
-                  { day: 'Fri', enrollments: 85, activity: 130 },
-                  { day: 'Sat', enrollments: 45, activity: 75 },
-                  { day: 'Sun', enrollments: 40, activity: 60 },
-                ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorEnrollments" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#087A45" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#087A45" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorActivity" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563EB" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#2563EB" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="activity" stroke="#2563EB" strokeWidth={2} fillOpacity={1} fill="url(#colorActivity)" />
-                  <Area type="monotone" dataKey="enrollments" stroke="#087A45" strokeWidth={2} fillOpacity={1} fill="url(#colorEnrollments)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* My Classes */}
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
-                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">My Classes</h2>
-              </div>
-              <Link
-                to="/instructor/classes"
-                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
-              >
-                <span>View All</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {(classes || []).length === 0 ? (
-                <p className="text-xs text-slate-400 py-3 col-span-2 text-center">No assigned classes yet.</p>
-              ) : (
-                (classes || []).slice(0, 2).map((cls) => (
-                  <div key={cls.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-colors flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#004D32] to-[#087A45] flex items-center justify-center shrink-0 text-white font-bold text-xs shadow-xs">
-                      {cls.sectionCode?.substring(0, 3) || 'CLS'}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-mono font-bold text-xs text-slate-900 truncate">{cls.sectionCode}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{cls.courseOffering?.course?.title || cls.name}</p>
-                      <p className="text-[11px] font-semibold text-[#087A45] mt-1">{cls.memberships?.length ?? 0} Students</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column (5 cols): Upcoming Activities & Recent Submissions */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Upcoming Activities */}
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
-                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Upcoming Activities</h2>
-              </div>
-              <Link
-                to="/instructor/assignments"
-                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
-              >
-                <span>View All</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors text-xs">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-slate-900">Grade Assignment</p>
-                  <p className="text-slate-500 mt-0.5">NET-201 · Due Apr 30, 2025</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors text-xs">
-                <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 mt-0.5">
-                  <ClipboardCheck className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-slate-900">Quiz: Module 4</p>
-                  <p className="text-slate-500 mt-0.5">SEC-202 · Due May 1, 2025</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors text-xs">
-                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
-                  <Send className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-slate-900">Course Update</p>
-                  <p className="text-slate-500 mt-0.5">PRG-101 · May 2, 2025</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Submissions */}
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
-                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Recent Submissions</h2>
-              </div>
-              <Link
-                to="/instructor/submissions"
-                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
-              >
-                <span>View All</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            <div className="space-y-2.5">
-              {(pending || []).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-4 text-center">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-500 mb-1" />
-                  <p className="text-xs text-slate-500">No pending submissions.</p>
-                </div>
-              ) : (
-                (pending || []).slice(0, 2).map((sub) => (
-                  <div key={sub.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors text-xs flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-slate-900 truncate">{sub.assignment?.title || 'Assignment Submission'}</p>
-                      <p className="text-slate-500 text-[11px] truncate mt-0.5">
-                        {sub.student?.firstName} {sub.student?.lastName} · {new Date(sub.submittedAt || sub.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className="font-mono font-bold text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                      {sub.grade !== null && sub.grade !== undefined ? `${sub.grade} pts` : 'Pending'}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ── Quick Actions ──────────────────────────────────────────────────────── */}
@@ -991,28 +805,28 @@ export function InstructorCourseStudioPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-slate-200">
-        <div>
-          <Badge label="Course & Curriculum Studio" color="emerald" icon={BookOpen} />
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My Courses & Content</h1>
-          <p className="text-sm text-slate-500 mt-1">Author modules, lessons, and attach learning resources.</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <button type="button" onClick={() => { setModForm({ title: '', description: '', orderIndex: 1, estimatedMinutes: 60 }); setEditMod(null); setModOpen(true); }} className="px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-semibold rounded-lg flex items-center gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Module
-          </button>
-          <button type="button" onClick={() => { setLesForm({ moduleId: '', title: '', lessonType: 'laboratory', contentHtml: '', codeSnippet: '', estimatedMinutes: 45, publicationStatus: 'published' }); setEditLes(null); setLesOpen(true); }} className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Lesson
-          </button>
-          <button type="button" onClick={() => setCourseOpen(true)} className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Add Course
-          </button>
-          <button type="button" onClick={() => setAiOpen(true)} className="px-3.5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5">
-            🤖 AI Quiz
-          </button>
-        </div>
-      </div>
+      {/* MinSU Campus Hero Header */}
+      <PageHeader
+        badge="Course & Curriculum Studio"
+        title="My Courses & Content"
+        subtitle="Author modules, lessons, and attach learning resources."
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <button type="button" onClick={() => { setModForm({ title: '', description: '', orderIndex: 1, estimatedMinutes: 60 }); setEditMod(null); setModOpen(true); }} className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold rounded-xl flex items-center gap-1.5 backdrop-blur-xs transition-colors">
+              <Plus className="w-3.5 h-3.5" /> Module
+            </button>
+            <button type="button" onClick={() => { setLesForm({ moduleId: '', title: '', lessonType: 'laboratory', contentHtml: '', codeSnippet: '', estimatedMinutes: 45, publicationStatus: 'published' }); setEditLes(null); setLesOpen(true); }} className="px-3.5 py-2 bg-[#E5B52B] hover:bg-[#c99a1b] text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-colors">
+              <Plus className="w-3.5 h-3.5" /> Lesson
+            </button>
+            <button type="button" onClick={() => setCourseOpen(true)} className="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white border border-white/25 text-xs font-semibold rounded-xl flex items-center gap-1.5 backdrop-blur-xs transition-colors">
+              <Plus className="w-3.5 h-3.5" /> Add Course
+            </button>
+            <button type="button" onClick={() => setAiOpen(true)} className="px-3.5 py-2 bg-[#159957] hover:bg-[#087A45] text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-colors">
+              🤖 AI Quiz
+            </button>
+          </div>
+        }
+      />
 
       {/* Course Picker */}
       {courses.length > 0 && (
@@ -2408,11 +2222,17 @@ export function InstructorAssignmentsPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-slate-200">
-        <div><Badge label="Assignments & Labs" color="indigo" icon={Terminal} /><h1 className="text-2xl font-bold text-slate-900 tracking-tight">Assignments & Laboratories</h1><p className="text-sm text-slate-500 mt-1">Configure deadlines, starter code, and grading rubrics.</p></div>
-        <button type="button" onClick={openCreate} className="self-start inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg"><Plus className="w-4 h-4" /> Create Assignment</button>
-        <button type="button" onClick={() => setCsvOpen(true)} className="self-start inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-semibold rounded-lg"><FileDown className="w-3.5 h-3.5" /> Import Grades CSV</button>
-      </div>
+      <PageHeader
+        badge="Assignments & Labs"
+        title="Assignments & Laboratories"
+        subtitle="Configure deadlines, starter code, and grading rubrics."
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <button type="button" onClick={openCreate} className="inline-flex items-center gap-2 px-4 py-2 bg-[#E5B52B] hover:bg-[#c99a1b] text-slate-950 text-xs font-bold rounded-xl shadow-xs transition-colors"><Plus className="w-4 h-4" /> Create Assignment</button>
+            <button type="button" onClick={() => setCsvOpen(true)} className="inline-flex items-center gap-2 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold rounded-xl backdrop-blur-xs transition-colors"><FileDown className="w-3.5 h-3.5" /> Import Grades CSV</button>
+          </div>
+        }
+      />
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="flex flex-wrap gap-2">
           {[['all', 'All'], ['written_work', 'Written Work'], ['laboratory', 'Laboratory'], ['performance_task', 'Performance Task'], ['project', 'Project'], ['recitation', 'Recitation'], ['case_study', 'Case Study']].map(([v, l]) => (
@@ -2548,7 +2368,11 @@ export function InstructorSubmissionsPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <div className="pb-5 border-b border-slate-200"><Badge label="Submission Evaluation" color="amber" icon={ClipboardCheck} /><h1 className="text-2xl font-bold text-slate-900 tracking-tight">Submission Review</h1><p className="text-sm text-slate-500 mt-1">Inspect student work, evaluate rubrics, and publish official grades.</p></div>
+      <PageHeader
+        badge="Submission Evaluation"
+        title="Submission Review"
+        subtitle="Inspect student work, evaluate rubrics, and publish official grades."
+      />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[{ label: 'Pending', v: counts.submitted + counts.under_review, cl: 'bg-amber-50 border-amber-200 text-amber-700' }, { label: 'Late', v: counts.late, cl: 'bg-orange-50 border-orange-200 text-orange-700' }, { label: 'TA Flagged', v: counts.flagged, cl: 'bg-rose-50 border-rose-200 text-rose-700' }, { label: 'Graded', v: counts.graded, cl: 'bg-emerald-50 border-emerald-200 text-emerald-700' }].map(k => (
           <div key={k.label} className={`p-4 rounded-xl border ${k.cl}`}><p className="text-2xl font-bold">{k.v}</p><p className="text-xs font-medium mt-0.5 text-slate-600">{k.label}</p></div>
@@ -2807,14 +2631,18 @@ export function InstructorAssessmentsPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-slate-200">
-        <div><Badge label="Assessment Engine" color="violet" icon={ClipboardCheck} /><h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quizzes & Question Bank</h1><p className="text-sm text-slate-500 mt-1">Build reusable question banks and configure server-timed examinations.</p></div>
-        <div className="flex gap-2 flex-wrap">
-          <button type="button" onClick={() => setBOpen(true)} className="self-start inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-semibold rounded-lg"><Plus className="w-3.5 h-3.5" /> New Bank</button>
-          <button type="button" onClick={() => setQOpen(true)} className="self-start inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-semibold rounded-lg"><Plus className="w-3.5 h-3.5" /> Add Question</button>
-          <button type="button" onClick={() => { setAForm(emptyA); setAOpen(true); }} className="self-start inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg"><Plus className="w-4 h-4" /> New Assessment</button>
-        </div>
-      </div>
+      <PageHeader
+        badge="Assessment Engine"
+        title="Quizzes & Question Bank"
+        subtitle="Build reusable question banks and configure server-timed examinations."
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <button type="button" onClick={() => setBOpen(true)} className="inline-flex items-center gap-2 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold rounded-xl backdrop-blur-xs transition-colors"><Plus className="w-3.5 h-3.5" /> New Bank</button>
+            <button type="button" onClick={() => setQOpen(true)} className="inline-flex items-center gap-2 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold rounded-xl backdrop-blur-xs transition-colors"><Plus className="w-3.5 h-3.5" /> Add Question</button>
+            <button type="button" onClick={() => { setAForm(emptyA); setAOpen(true); }} className="inline-flex items-center gap-2 px-4 py-2 bg-[#E5B52B] hover:bg-[#c99a1b] text-slate-950 text-xs font-bold rounded-xl shadow-xs transition-colors"><Plus className="w-4 h-4" /> New Assessment</button>
+          </div>
+        }
+      />
 
       <div className="flex gap-1 bg-slate-100 p-1 rounded-lg w-fit">
         {[['assessments', `Assessments (${assessments.length})`], ['banks', `Question Banks (${banks.length})`]].map(([v, l]) => (
@@ -3042,17 +2870,21 @@ export function InstructorGradebookPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-slate-200">
-        <div><Badge label="Weighted Gradebook" color="rose" icon={Award} /><h1 className="text-2xl font-bold text-slate-900 tracking-tight">Class Gradebook</h1><p className="text-sm text-slate-500 mt-1">Weighted calculations with auditable revision history.</p></div>
-        <div className="flex gap-2 flex-wrap">
-          {selClass && (
-            <a href={`/api/reports?type=gradebook&classId=${selClass}&format=csv`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-semibold rounded-lg"><FileDown className="w-4 h-4" /> CSV</a>
-          )}
-          <button type="button" onClick={openCat} disabled={!selClass} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-semibold rounded-lg disabled:opacity-40"><Pencil className="w-4 h-4" /> Edit Weights</button>
-          <button type="button" onClick={() => setManOpen(true)} disabled={!selClass} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg disabled:opacity-40"><Plus className="w-4 h-4" /> Enter Grade</button>
-          <button type="button" onClick={handleSubmitFinal} disabled={!selClass} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg disabled:opacity-40"><Send className="w-4 h-4" /> Submit Final</button>
-        </div>
-      </div>
+      <PageHeader
+        badge="Weighted Gradebook"
+        title="Class Gradebook"
+        subtitle="Weighted calculations with auditable revision history."
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            {selClass && (
+              <a href={`/api/reports?type=gradebook&classId=${selClass}&format=csv`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold rounded-xl backdrop-blur-xs transition-colors"><FileDown className="w-4 h-4" /> CSV</a>
+            )}
+            <button type="button" onClick={openCat} disabled={!selClass} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold rounded-xl backdrop-blur-xs transition-colors disabled:opacity-40"><Pencil className="w-4 h-4" /> Edit Weights</button>
+            <button type="button" onClick={() => setManOpen(true)} disabled={!selClass} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#E5B52B] hover:bg-[#c99a1b] text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors disabled:opacity-40"><Plus className="w-4 h-4" /> Enter Grade</button>
+            <button type="button" onClick={handleSubmitFinal} disabled={!selClass} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#159957] hover:bg-[#087A45] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors disabled:opacity-40"><Send className="w-4 h-4" /> Submit Final</button>
+          </div>
+        }
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2 flex-wrap">{classes.map(c => (
@@ -3264,11 +3096,11 @@ export function InstructorClassManagementPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <div className="pb-5 border-b border-slate-200">
-        <Badge label="Class Management" color="blue" icon={Users} />
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Class Management</h1>
-        <p className="text-sm text-slate-500 mt-1">View assigned class sections, rosters, grade weights, and issue certificates.</p>
-      </div>
+      <PageHeader
+        badge="Class Management"
+        title="Class Management"
+        subtitle="View assigned class sections, rosters, grade weights, and issue certificates."
+      />
 
       {clsLoading ? <LoadingState /> : classes.length === 0 ? (<div className="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center"><Users className="w-10 h-10 text-slate-300 mx-auto mb-3" /><p className="text-sm font-semibold text-slate-500">No classes assigned to you yet.</p></div>) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

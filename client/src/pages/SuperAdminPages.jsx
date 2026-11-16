@@ -43,11 +43,7 @@ import {
   ArrowRight,
   Play,
   RefreshCw,
-  Sparkles,
-  UserCheck,
-  UserX,
-  FileCode,
-  Archive
+  Sparkles
 } from 'lucide-react';
 import { lmsApi, extractErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -135,178 +131,63 @@ export function SuperAdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* ── MinSU Hero Banner (Matching Mockup) ───────────────────────────────── */}
+      {/* ── MinSU Campus Panoramic Hero Banner (Matching 5-Role Mockup) ───────── */}
       <MinsuCampusBanner
         title="Super Administrator"
         subtitle="Secure. Manage. Optimize."
-        roleBadge="System Administration & Governance"
+        roleBadge="MinSU Core System Governance"
         actions={
-          <button
-            type="button"
-            onClick={handleRunDiagnostics}
-            disabled={runningDiagnostics}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-xs transition-colors border border-white/20"
-          >
-            {runningDiagnostics ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-            <span>{runningDiagnostics ? 'Probing...' : 'Run Diagnostics'}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRunDiagnostics}
+              disabled={runningDiagnostics}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold backdrop-blur-xs transition-colors border border-white/25 shadow-xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${runningDiagnostics ? 'animate-spin' : ''}`} />
+              Run Diagnostics
+            </button>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#E5B52B] hover:bg-[#d4a420] text-[#172B24] text-xs font-bold transition-colors shadow-xs"
+            >
+              <Activity className="w-3.5 h-3.5" /> Refresh Telemetry
+            </button>
+          </div>
         }
       />
-      <h1 className="sr-only">MinSU NetAcad Enterprise Architecture & Security Command</h1>
 
-      {/* ── 4 KPI Stat Cards (Matching Mockup) ─────────────────────────────────── */}
+      {/* ── 4 KPI Stat Cards (Matching 5-Role Mockup) ─────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MinsuStatCard
           title="Total Users"
           value={m.totalUsers ?? 0}
-          subtitle="All registered accounts"
+          subtitle={`${m.activeUsers ?? 0} active users`}
           icon={Users}
           accent="blue"
         />
         <MinsuStatCard
           title="Active Users"
           value={m.activeUsers ?? 0}
-          subtitle="Normal active status"
-          icon={UserCheck}
+          subtitle="Enrolled & Faculty"
+          icon={CheckCircle2}
           accent="green"
         />
         <MinsuStatCard
           title="Suspended"
           value={m.suspendedUsers ?? 0}
-          subtitle="Account restrictions"
-          icon={UserX}
-          accent="amber"
+          subtitle="Security flagged"
+          icon={AlertTriangle}
+          accent="red"
         />
         <MinsuStatCard
           title="System Uptime"
           value="99.9%"
-          subtitle={m.systemHealth || 'All services operational'}
+          subtitle="All systems operational"
           icon={ShieldCheck}
-          accent="emerald"
+          accent="green"
         />
-      </div>
-
-      {/* ── Core Two-Column Dashboard (Matching Mockup) ────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (7 cols): Platform Analytics & Quick Tools */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Platform Analytics Card */}
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#E2E8F0]">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
-                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Platform Analytics</h2>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-slate-500">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" /> Users
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" /> Courses
-                </span>
-                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                  {m.totalUsers ?? 0} Total
-                </span>
-              </div>
-            </div>
-            <div className="h-60">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={roleDist} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="slug" tick={{ fontSize: 11 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#087A45" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Quick Tools */}
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
-            <div className="flex items-center gap-2 pb-3 border-b border-[#E2E8F0] mb-4">
-              <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
-              <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Quick Tools</h2>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <MinsuQuickLink to="/admin/users" icon={Users} title="Manage Users" subtitle="Accounts & roles" accent="blue" />
-              <MinsuQuickLink to="/admin/audit-logs" icon={Activity} title="View Logs" subtitle="Security ledger" accent="green" />
-              <MinsuQuickLink to="/admin/settings" icon={Settings} title="System Config" subtitle="Platform settings" accent="gold" />
-              <MinsuQuickLink to="/admin/settings" icon={Database} title="Backup DB" subtitle="Data snapshot" accent="purple" />
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column (5 cols): System Health & Recent Events */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* System Health Card */}
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 shadow-xs flex flex-col items-center text-center">
-            <div className="w-full flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-5">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
-                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">System Health</h2>
-              </div>
-              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                Operational
-              </span>
-            </div>
-
-            <div className="w-20 h-20 rounded-full bg-emerald-50 border-4 border-emerald-500/20 flex items-center justify-center mb-3">
-              <CheckCircle2 className="w-10 h-10 text-emerald-600" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900">All Systems Operational</h3>
-            <p className="text-xs text-slate-500 mt-1">Uptime: 99.9% · Latency ~12ms</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">Last Check: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-
-            <div className="w-full mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] text-slate-400 uppercase font-bold">API Services</span>
-                <p className="font-bold text-emerald-700 mt-0.5">Online (200 OK)</p>
-              </div>
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] text-slate-400 uppercase font-bold">Database</span>
-                <p className="font-bold text-emerald-700 mt-0.5">Connected (SQLite)</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Events Card */}
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-5 rounded-full bg-[#087A45]" />
-                <h2 className="text-sm font-bold text-[#172B24] tracking-tight">Recent Events</h2>
-              </div>
-              <Link
-                to="/admin/audit-logs"
-                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
-              >
-                <span>View All</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div className="space-y-2.5 max-h-72 overflow-y-auto">
-              {securityEvents.length === 0 && auditLogs.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4 text-center">No recent security events.</p>
-              ) : (
-                (securityEvents.length > 0 ? securityEvents : auditLogs).slice(0, 5).map((ev) => (
-                  <div
-                    key={ev.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 text-xs hover:bg-white transition-colors"
-                  >
-                    <div className="min-w-0 flex-1 pr-2">
-                      <p className="font-mono font-bold text-slate-900 truncate">{ev.action}</p>
-                      <p className="text-slate-500 text-[11px] truncate mt-0.5">
-                        {ev.actorEmail || 'System'} · {new Date(ev.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    <StatusBadge status={ev.severity || 'info'} />
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Horizontal 5-Stage Stepper Pipeline Bar */}
@@ -321,13 +202,13 @@ export function SuperAdminDashboardPage() {
           ].map((s, idx, arr) => (
             <React.Fragment key={s.step}>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm ring-4 ring-blue-50">
+                <div className="w-8 h-8 rounded-full bg-[#087A45] text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm ring-4 ring-emerald-50">
                   {s.step}
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-bold text-slate-900">{s.title}</span>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#087A45]" />
                   </div>
                   <span className="text-[11px] text-slate-500 font-medium">{s.desc}</span>
                 </div>
@@ -542,11 +423,10 @@ export function SuperAdminDashboardPage() {
                     <div
                       key={probe.id}
                       onClick={() => setActiveProbeIndex(idx)}
-                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-3 ${
-                        isSelected
-                          ? 'border-blue-600 bg-blue-50/60 shadow-xs'
-                          : 'border-slate-200 hover:bg-slate-50'
-                      }`}
+                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-3 ${isSelected
+                        ? 'border-blue-600 bg-blue-50/60 shadow-xs'
+                        : 'border-slate-200 hover:bg-slate-50'
+                        }`}
                     >
                       <input
                         type="radio"
@@ -591,6 +471,96 @@ export function SuperAdminDashboardPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4 Stat Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Total Registered Users"
+          value={m.totalUsers ?? 0}
+          subtitle={`${m.activeUsers ?? 0} active · ${m.suspendedUsers ?? 0} suspended`}
+          icon={Users}
+          accent="blue"
+        />
+        <StatCard
+          title="Courses & Offerings"
+          value={m.totalCourses ?? 0}
+          subtitle={`${m.totalOfferings ?? 0} term offerings`}
+          icon={BookOpen}
+          accent="indigo"
+        />
+        <StatCard
+          title="Active Class Sections"
+          value={m.totalClasses ?? 0}
+          subtitle={`${m.totalEnrollments ?? 0} student enrollments`}
+          icon={Layers}
+          accent="emerald"
+        />
+        <StatCard
+          title="Platform Health"
+          value="Healthy"
+          subtitle={m.systemHealth || 'All services operational'}
+          icon={Activity}
+          accent="emerald"
+        />
+      </div>
+
+      {/* Account Distribution Chart & Recent Security Events */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Account Distribution by Role</h2>
+              <p className="text-xs text-slate-500">Active user assignments across all system roles</p>
+            </div>
+            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+              {m.totalUsers ?? 0} Accounts
+            </span>
+          </div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={roleDist}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="slug" tick={{ fontSize: 11 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="count" fill="#2563eb" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Recent Security & Authentication Events</h2>
+              <p className="text-xs text-slate-500">Real-time authentication and access events</p>
+            </div>
+            <Link
+              to="/admin/audit-logs"
+              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            >
+              <span>View All</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="space-y-2.5 max-h-64 overflow-y-auto">
+            {securityEvents.map((ev) => (
+              <div
+                key={ev.id}
+                className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200/80 text-xs"
+              >
+                <div>
+                  <span className="font-mono font-bold text-slate-900">{ev.action}</span>
+                  <p className="text-slate-500 mt-0.5">
+                    Actor: {ev.actorEmail || 'System'} · IP: {ev.ipAddress}
+                  </p>
+                </div>
+                <StatusBadge status={ev.severity} />
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -960,11 +930,10 @@ export function UserManagementPage() {
                                 disabled={isSuperAdmin}
                                 onClick={() => updateMutation.mutate({ id: u.id, payload: { status: 'suspended' } })}
                                 title={isSuperAdmin ? 'Active Super Administrators cannot be suspended' : 'Suspend account'}
-                                className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
-                                  isSuperAdmin
-                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                                    : 'bg-amber-100 hover:bg-amber-200 text-amber-900'
-                                }`}
+                                className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${isSuperAdmin
+                                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                                  : 'bg-amber-100 hover:bg-amber-200 text-amber-900'
+                                  }`}
                               >
                                 Suspend
                               </button>
@@ -989,14 +958,13 @@ export function UserManagementPage() {
                                 isSuperAdmin
                                   ? 'Super Administrator accounts are permanently protected against deletion'
                                   : isSelf
-                                  ? 'You cannot delete your own account'
-                                  : 'Delete or archive user account'
+                                    ? 'You cannot delete your own account'
+                                    : 'Delete or archive user account'
                               }
-                              className={`p-1 rounded transition-colors ${
-                                isSuperAdmin || isSelf
-                                  ? 'text-slate-300 cursor-not-allowed'
-                                  : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                              }`}
+                              className={`p-1 rounded transition-colors ${isSuperAdmin || isSelf
+                                ? 'text-slate-300 cursor-not-allowed'
+                                : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                }`}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1267,11 +1235,10 @@ export function RolePermissionMatrixPage() {
             key={r.id}
             type="button"
             onClick={() => setSelectedRoleId(r.id)}
-            className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all ${
-              activeRole?.id === r.id
-                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-            }`}
+            className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all ${activeRole?.id === r.id
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
           >
             {r.name} ({r.permissions?.length || 0})
           </button>
@@ -1316,13 +1283,12 @@ export function RolePermissionMatrixPage() {
               return (
                 <label
                   key={perm.id}
-                  className={`flex items-start gap-3 p-3 rounded-lg border text-xs transition-colors ${
-                    isSuperAdminRole
-                      ? 'bg-slate-50/70 border-slate-200 cursor-not-allowed opacity-90'
-                      : checked
+                  className={`flex items-start gap-3 p-3 rounded-lg border text-xs transition-colors ${isSuperAdminRole
+                    ? 'bg-slate-50/70 border-slate-200 cursor-not-allowed opacity-90'
+                    : checked
                       ? 'bg-blue-50/50 border-blue-300 cursor-pointer'
                       : 'bg-white border-slate-200 hover:bg-slate-50 cursor-pointer'
-                  }`}
+                    }`}
                 >
                   <input
                     type="checkbox"
@@ -1631,11 +1597,10 @@ export function SystemSettingsPage() {
                   <Terminal className="w-4 h-4" />
                 </div>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                    integrations.packetTracerLabSupport?.enabled
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'bg-slate-100 text-slate-500'
-                  }`}
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${integrations.packetTracerLabSupport?.enabled
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-slate-100 text-slate-500'
+                    }`}
                 >
                   {integrations.packetTracerLabSupport?.enabled ? 'Active' : 'Disabled'}
                 </span>
@@ -1650,11 +1615,10 @@ export function SystemSettingsPage() {
               <button
                 type="button"
                 onClick={() => handleToggleIntegration('packetTracerLabSupport')}
-                className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${
-                  integrations.packetTracerLabSupport?.enabled
-                    ? 'bg-amber-100 hover:bg-amber-200 text-amber-900'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
+                className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${integrations.packetTracerLabSupport?.enabled
+                  ? 'bg-amber-100 hover:bg-amber-200 text-amber-900'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
               >
                 {integrations.packetTracerLabSupport?.enabled ? 'Disable Lab' : 'Enable Lab'}
               </button>
@@ -1669,11 +1633,10 @@ export function SystemSettingsPage() {
                   <Cpu className="w-4 h-4" />
                 </div>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                    integrations.codeSandboxService?.enabled
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'bg-slate-100 text-slate-500'
-                  }`}
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${integrations.codeSandboxService?.enabled
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-slate-100 text-slate-500'
+                    }`}
                 >
                   {integrations.codeSandboxService?.enabled ? 'Active' : 'Standby'}
                 </span>
@@ -1688,11 +1651,10 @@ export function SystemSettingsPage() {
               <button
                 type="button"
                 onClick={() => handleToggleIntegration('codeSandboxService')}
-                className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${
-                  integrations.codeSandboxService?.enabled
-                    ? 'bg-amber-100 hover:bg-amber-200 text-amber-900'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
+                className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${integrations.codeSandboxService?.enabled
+                  ? 'bg-amber-100 hover:bg-amber-200 text-amber-900'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
               >
                 {integrations.codeSandboxService?.enabled ? 'Disable Runner' : 'Enable Runner'}
               </button>
@@ -1707,11 +1669,10 @@ export function SystemSettingsPage() {
                   <Mail className="w-4 h-4" />
                 </div>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                    integrations.smtpEmailNotifications?.enabled
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'bg-slate-100 text-slate-500'
-                  }`}
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${integrations.smtpEmailNotifications?.enabled
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-slate-100 text-slate-500'
+                    }`}
                 >
                   {integrations.smtpEmailNotifications?.enabled ? 'SMTP Relay' : 'In-App Primary'}
                 </span>
@@ -1726,11 +1687,10 @@ export function SystemSettingsPage() {
               <button
                 type="button"
                 onClick={() => handleToggleIntegration('smtpEmailNotifications')}
-                className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${
-                  integrations.smtpEmailNotifications?.enabled
-                    ? 'bg-amber-100 hover:bg-amber-200 text-amber-900'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
+                className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${integrations.smtpEmailNotifications?.enabled
+                  ? 'bg-amber-100 hover:bg-amber-200 text-amber-900'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
               >
                 {integrations.smtpEmailNotifications?.enabled ? 'Use In-App' : 'Enable SMTP'}
               </button>
@@ -2098,11 +2058,10 @@ export function SystemSettingsPage() {
           <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between">
             <span className="font-semibold text-slate-700">Calculated Sum:</span>
             <span
-              className={`font-bold text-sm ${
-                gradingForm.reduce((acc, item) => acc + Number(item.weightPercent || 0), 0) === 100
-                  ? 'text-emerald-600'
-                  : 'text-red-600'
-              }`}
+              className={`font-bold text-sm ${gradingForm.reduce((acc, item) => acc + Number(item.weightPercent || 0), 0) === 100
+                ? 'text-emerald-600'
+                : 'text-red-600'
+                }`}
             >
               {gradingForm.reduce((acc, item) => acc + Number(item.weightPercent || 0), 0)}% / 100%
             </span>

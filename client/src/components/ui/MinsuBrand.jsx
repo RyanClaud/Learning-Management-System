@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight, ChevronRight } from 'lucide-react';
+import minsuCampusBg from '../../assets/minsu-bg.jpg';
 
 /**
  * High-fidelity Vector SVG Seal of Mindoro State University (MinSU)
@@ -98,48 +99,47 @@ export function MinsuCampusBanner({
   actions
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#003B26] via-[#004D32] to-[#087A45] text-white shadow-md border border-emerald-900/40 p-6 sm:p-7">
-      {/* Background Architectural & Campus Silhouette Overlay */}
+    <div className="relative overflow-hidden rounded-2xl text-white shadow-lg border border-[#003824] p-6 sm:p-8 mb-6 min-h-[175px] flex flex-col justify-center">
+      {/* Real MinSU Campus Building Photograph Background */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-15 mix-blend-overlay bg-cover bg-center"
+        className="absolute inset-0 bg-cover bg-center select-none"
         style={{
-          backgroundImage: `radial-gradient(circle at 80% 50%, rgba(229,181,43,0.3) 0%, transparent 60%), linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%)`
+          backgroundImage: `url(${minsuCampusBg})`,
+          backgroundPosition: 'center 42%'
         }}
         aria-hidden="true"
       />
 
-      {/* Decorative Gold S-Curve Sweep on right */}
-      <svg
-        className="absolute right-0 top-0 h-full w-96 text-emerald-400/10 pointer-events-none select-none hidden md:block"
-        viewBox="0 0 400 200"
-        fill="currentColor"
-        preserveAspectRatio="none"
+      {/* Dark Green Gradient Wash: high contrast on text, revealing campus scenery in center & right */}
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-[#003B26]/95 via-[#004D32]/85 to-[#087A45]/45"
         aria-hidden="true"
-      >
-        <path d="M150 0 C250 80, 200 140, 400 200 L400 0 Z" fill="url(#bannerGoldSweep)" opacity="0.3" />
-        <defs>
-          <linearGradient id="bannerGoldSweep" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#E5B52B" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#159957" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-      </svg>
+      />
+
+      {/* Decorative Gold & Emerald Curved Sweep on right (Mockup Ribbon) */}
+      <div className="absolute right-0 top-0 bottom-0 w-96 pointer-events-none select-none hidden md:block overflow-hidden">
+        {/* Soft emerald curve */}
+        <div className="absolute -right-20 -top-16 w-80 h-80 rounded-full border-[14px] border-[#159957]/30 pointer-events-none" />
+        {/* Gold radiant curve */}
+        <div className="absolute -right-8 -top-8 w-72 h-72 rounded-full border-[5px] border-[#E5B52B]/40 pointer-events-none" />
+      </div>
 
       <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="max-w-2xl space-y-2">
           {roleBadge && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/10 text-amber-300 border border-amber-300/30 backdrop-blur-xs mb-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-black/30 text-[#E5B52B] border border-[#E5B52B]/40 backdrop-blur-md mb-1 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E5B52B] animate-pulse" />
               {roleBadge}
             </span>
           )}
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight drop-shadow-xs">
             {title}{' '}
             {goldTitle && (
               <span className="text-[#E5B52B] drop-shadow-xs">{goldTitle}</span>
             )}
           </h1>
           {subtitle && (
-            <p className="text-emerald-100 text-sm sm:text-base font-medium max-w-xl leading-relaxed">
+            <p className="text-emerald-100 text-sm sm:text-base font-medium max-w-xl leading-relaxed drop-shadow-xs">
               {subtitle}
             </p>
           )}
@@ -147,10 +147,10 @@ export function MinsuCampusBanner({
         </div>
 
         {/* Right side MinSU Institutional Crest Seal Badge */}
-        <div className="hidden lg:flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3.5 rounded-2xl border border-white/15 shadow-inner shrink-0">
+        <div className="hidden lg:flex items-center gap-3.5 bg-black/35 backdrop-blur-md px-5 py-3.5 rounded-2xl border border-white/20 shadow-xl shrink-0">
           <MinsuSeal size={52} />
           <div className="text-left leading-tight">
-            <span className="text-[12px] font-extrabold uppercase tracking-wider text-amber-300 block">
+            <span className="text-[12px] font-extrabold uppercase tracking-wider text-[#E5B52B] block">
               Mindoro State
             </span>
             <span className="text-[13px] font-extrabold uppercase tracking-wider text-white block">

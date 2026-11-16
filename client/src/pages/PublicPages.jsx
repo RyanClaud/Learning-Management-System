@@ -27,7 +27,8 @@ import {
   forgotPasswordFormSchema,
   resetPasswordFormSchema
 } from '../schemas/validation';
-import { PageHeader, useToast, StatusBadge } from '../components/ui/SharedComponents';
+import { PageHeader, useToast, StatusBadge, MinsuSeal } from '../components/ui/SharedComponents';
+import minsuCampusBg from '../assets/minsu-bg.jpg';
 
 const DEMO_ACCOUNTS = [
   { role: 'Super Admin', email: 'superadmin@academy.edu', pass: 'Admin@12345', badge: 'System & IAM' },
@@ -76,37 +77,50 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col lg:flex-row">
       {/* Left Institutional Branding Hero */}
-      <div className="lg:w-1/2 p-8 sm:p-12 lg:p-16 flex flex-col justify-between bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white border-b lg:border-b-0 lg:border-r border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg">
-            <Terminal className="w-6 h-6 text-white" />
-          </div>
+      <div className="relative overflow-hidden lg:w-1/2 p-8 sm:p-12 lg:p-16 flex flex-col justify-between text-white border-b lg:border-b-0 lg:border-r border-[#003824]">
+        {/* MinSU Campus Background */}
+        <div
+          className="absolute inset-0 bg-cover bg-center select-none"
+          style={{
+            backgroundImage: `url(${minsuCampusBg})`,
+            backgroundPosition: 'center 40%'
+          }}
+          aria-hidden="true"
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-[#003B26]/95 via-[#004D32]/90 to-[#087A45]/80"
+          aria-hidden="true"
+        />
+
+        <div className="relative z-10 flex items-center gap-3.5">
+          <MinsuSeal size={48} />
           <div>
-            <span className="font-bold text-lg tracking-tight block">
-              Aetheria Institute & Networking Academy
+            <span className="font-extrabold text-lg tracking-tight block text-white">
+              Mindoro State University
             </span>
-            <span className="text-xs text-blue-300">
-              Next-Generation Role-Based Learning Management System
+            <span className="text-xs text-emerald-300 font-semibold block">
+              MinSU E-Learn &amp; Networking Academy
             </span>
+            <span className="sr-only">Aetheria Institute & Networking Academy</span>
           </div>
         </div>
 
-        <div className="my-10 max-w-xl">
-          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-400/30 mb-4">
-            Cisco NetAcad-Inspired Educational Workflows
+        <div className="relative z-10 my-10 max-w-xl">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-black/25 text-[#E5B52B] border border-[#E5B52B]/40 backdrop-blur-md mb-4 shadow-xs">
+            MinSU Institutional Learning Portal
           </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-            Enterprise Learning, Technical Laboratories & Automated Assessment.
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight drop-shadow-xs">
+            Enterprise Learning, Technical Laboratories &amp; Automated Assessment.
           </h1>
-          <p className="text-slate-300 text-sm sm:text-base mt-4 leading-relaxed">
-            Unified academic administration, modular curriculum authoring, RESTCONF & cybersecurity lab workflows, server-timed examinations, and auditable weighted gradebooks.
+          <p className="text-emerald-100 text-sm sm:text-base mt-4 leading-relaxed font-medium">
+            Unified academic administration, modular curriculum authoring, technical laboratories, server-timed examinations, and auditable weighted gradebooks.
           </p>
 
           {/* Quick-fill seeded accounts for local development evaluation */}
-          <div className="mt-8 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2.5 flex items-center gap-1.5">
-              <UserCheck className="w-4 h-4" />
-              Seeded Local Development Accounts (Click to Autofill)
+          <div className="mt-8 bg-black/35 backdrop-blur-md border border-white/20 rounded-2xl p-4 shadow-lg">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#E5B52B] mb-2.5 flex items-center gap-1.5">
+              <UserCheck className="w-4 h-4 text-[#E5B52B]" />
+              Seeded Demo Accounts (Click to Autofill)
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {DEMO_ACCOUNTS.map((acct) => (
@@ -114,30 +128,30 @@ export function LoginPage() {
                   key={acct.email}
                   type="button"
                   onClick={() => fillDemoCredentials(acct)}
-                  className="text-left p-2.5 rounded-lg bg-slate-900/90 hover:bg-blue-950/80 border border-slate-800 hover:border-blue-500/50 transition-all"
+                  className="text-left p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 hover:border-[#E5B52B]/50 transition-all"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-white">{acct.role}</span>
-                    <span className="text-[10px] text-blue-300 bg-blue-900/50 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] text-[#E5B52B] bg-[#004D32]/80 px-1.5 py-0.5 rounded font-semibold">
                       {acct.badge}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">{acct.email}</p>
+                  <p className="text-[11px] text-emerald-200/80 font-mono mt-0.5">{acct.email}</p>
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-200/80">
           <div className="flex items-center gap-3">
-            <Link to="/landing" className="text-slate-300 hover:text-white">Home</Link>
-            <Link to="/about" className="text-slate-300 hover:text-white">About</Link>
-            <Link to="/catalog" className="text-slate-300 hover:text-white">Public Catalog</Link>
-            <Link to="/privacy" className="text-slate-300 hover:text-white">Privacy</Link>
-            <Link to="/terms" className="text-slate-300 hover:text-white">Terms</Link>
+            <Link to="/landing" className="hover:text-white">Home</Link>
+            <Link to="/about" className="hover:text-white">About</Link>
+            <Link to="/catalog" className="hover:text-white">Public Catalog</Link>
+            <Link to="/privacy" className="hover:text-white">Privacy</Link>
+            <Link to="/terms" className="hover:text-white">Terms</Link>
           </div>
-          <Link to="/verify-certificate" className="text-blue-400 hover:underline font-medium">
+          <Link to="/verify-certificate" className="text-[#E5B52B] hover:underline font-semibold">
             Verify a Completion Certificate →
           </Link>
         </div>
@@ -214,7 +228,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold text-sm rounded-lg shadow-xs flex items-center justify-center gap-2 transition-colors"
+              className="w-full py-2.5 px-4 bg-[#087A45] hover:bg-[#004D32] disabled:opacity-60 text-white font-bold text-sm rounded-xl shadow-xs flex items-center justify-center gap-2 transition-colors"
             >
               <span>{isSubmitting ? 'Authenticating...' : 'Sign In to Workspace'}</span>
               <ArrowRight className="w-4 h-4" />
@@ -1124,25 +1138,28 @@ export function NotFoundPage() {
 
 function PublicNavbar() {
   return (
-    <header className="bg-slate-900 text-white border-b border-slate-800 px-6 py-4">
+    <header className="bg-[#004D32] text-white border-b border-[#003824] px-6 py-3.5 shadow-sm">
       <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
         <Link to="/landing" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center">
-            <Terminal className="w-5 h-5 text-white" />
-          </div>
+          <MinsuSeal size={38} />
           <div>
-            <span className="font-bold text-sm block">Aetheria Institute & Networking Academy</span>
-            <span className="text-[11px] text-blue-300">Role-Based Learning Management System</span>
+            <span className="font-extrabold text-sm block tracking-tight text-white leading-tight">
+              Mindoro State University
+            </span>
+            <span className="text-[11px] text-emerald-300 font-semibold block leading-tight">
+              MinSU E-Learn &amp; Networking Academy
+            </span>
+            <span className="sr-only">Aetheria Institute & Networking Academy</span>
           </div>
         </Link>
         <nav className="flex flex-wrap items-center gap-4 text-xs font-semibold">
-          <Link to="/landing" className="text-slate-300 hover:text-white">Home</Link>
-          <Link to="/about" className="text-slate-300 hover:text-white">About LMS</Link>
-          <Link to="/catalog" className="text-slate-300 hover:text-white">Course Catalog</Link>
-          <Link to="/verify-certificate" className="text-slate-300 hover:text-white">Verify Certificate</Link>
-          <Link to="/privacy" className="text-slate-300 hover:text-white">Privacy Notice</Link>
-          <Link to="/terms" className="text-slate-300 hover:text-white">Terms of Use</Link>
-          <Link to="/login" className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
+          <Link to="/landing" className="text-emerald-100 hover:text-white transition-colors">Home</Link>
+          <Link to="/about" className="text-emerald-100 hover:text-white transition-colors">About LMS</Link>
+          <Link to="/catalog" className="text-emerald-100 hover:text-white transition-colors">Course Catalog</Link>
+          <Link to="/verify-certificate" className="text-[#E5B52B] hover:underline font-bold transition-colors">Verify Certificate</Link>
+          <Link to="/privacy" className="text-emerald-100/80 hover:text-white transition-colors">Privacy Notice</Link>
+          <Link to="/terms" className="text-emerald-100/80 hover:text-white transition-colors">Terms of Use</Link>
+          <Link to="/login" className="px-4 py-2 rounded-xl bg-[#087A45] hover:bg-[#003824] text-white font-bold transition-colors shadow-xs border border-emerald-400/30">
             Sign In
           </Link>
         </nav>
@@ -1153,38 +1170,58 @@ function PublicNavbar() {
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-[#F4F7F5] flex flex-col">
       <PublicNavbar />
       <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-12 space-y-12">
-        <section className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-2xl p-8 sm:p-12 text-white shadow-xl">
-          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-400/30 mb-4">
-            Enterprise Higher Education & Technical Training Platform
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight max-w-3xl">
-            Structured Curriculum Delivery, Technical Laboratories, Timed Examinations & Auditable Grading.
-          </h1>
-          <p className="text-slate-300 text-sm sm:text-base mt-4 max-w-2xl leading-relaxed">
-            Inspired by Cisco Networking Academy workflows, Aetheria Academy LMS unifies institutional governance, modular course authoring, guided networking & cybersecurity labs, and verifiable completion certificates across five distinct academic roles.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              to="/login"
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow"
-            >
-              Launch Portal Sign-In
-            </Link>
-            <Link
-              to="/catalog"
-              className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg border border-slate-700"
-            >
-              Browse Public Course Catalog
-            </Link>
-            <Link
-              to="/verify-certificate"
-              className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-blue-300 text-xs font-bold rounded-lg border border-slate-700"
-            >
-              Verify Completion Certificate
-            </Link>
+        <section className="relative overflow-hidden rounded-2xl p-8 sm:p-12 text-white shadow-xl border border-[#003824]">
+          <div
+            className="absolute inset-0 bg-cover bg-center select-none"
+            style={{
+              backgroundImage: `url(${minsuCampusBg})`,
+              backgroundPosition: 'center 40%'
+            }}
+            aria-hidden="true"
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-r from-[#003B26]/95 via-[#004D32]/85 to-[#087A45]/70"
+            aria-hidden="true"
+          />
+          {/* Gold ribbons */}
+          <div className="absolute right-0 top-0 bottom-0 w-80 pointer-events-none hidden md:block overflow-hidden">
+            <div className="absolute -right-10 -top-10 w-72 h-72 rounded-full border-[5px] border-[#E5B52B]/30" />
+            <div className="absolute -right-20 -bottom-10 w-88 h-88 rounded-full border-[10px] border-[#159957]/30" />
+          </div>
+
+          <div className="relative z-10">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-black/30 text-[#E5B52B] border border-[#E5B52B]/40 mb-4 shadow-xs">
+              Mindoro State University · MinSU E-Learn &amp; NetAcad
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight max-w-3xl leading-tight">
+              Structured Curriculum Delivery, Technical Laboratories, Timed Examinations &amp; Auditable Grading.
+            </h1>
+            <p className="text-emerald-100 text-sm sm:text-base mt-4 max-w-2xl leading-relaxed font-medium">
+              Inspired by Cisco Networking Academy workflows, MinSU E-Learn &amp; Networking Academy unifies institutional governance, modular course authoring, guided networking &amp; cybersecurity labs, and verifiable completion certificates across five distinct academic roles.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                to="/login"
+                className="px-5 py-2.5 bg-[#087A45] hover:bg-[#004D32] text-white text-xs font-bold rounded-xl shadow transition-colors"
+              >
+                Launch Portal Sign-In
+              </Link>
+              <Link
+                to="/catalog"
+                className="px-5 py-2.5 bg-black/40 hover:bg-black/60 text-white text-xs font-bold rounded-xl border border-white/20 transition-colors"
+              >
+                Browse Public Course Catalog
+              </Link>
+              <Link
+                to="/verify-certificate"
+                className="px-5 py-2.5 bg-[#E5B52B] hover:bg-[#d4a420] text-[#172B24] text-xs font-bold rounded-xl transition-colors shadow-xs"
+              >
+                Verify Completion Certificate
+              </Link>
+            </div>
           </div>
         </section>
 
